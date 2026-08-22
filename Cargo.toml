@@ -1,0 +1,27 @@
+[package]
+name = "datalog-core"
+version = "0.1.0"
+description = "Typed Datalog rule IR, validation, and stratification"
+authors = ["Jacobus Geluk <jacobus.geluk@dataroad.com>"]
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/legra-ai/datalog-core"
+documentation = "https://docs.rs/datalog-core"
+readme = "README.md"
+keywords = ["datalog", "rules", "logic", "stratification", "ir"]
+categories = ["data-structures", "parser-implementations"]
+publish = true
+build = "build.rs"
+
+[dependencies]
+rustc-hash = "2"
+
+[build-dependencies]
+rhusky = "0.0.6"
+
+[lints.rust]
+missing_docs = "deny"
+
+[lints.clippy]
+all = "deny"
