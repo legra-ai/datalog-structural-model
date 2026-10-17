@@ -67,6 +67,7 @@ jobs:
       - run: ./scripts/fmt.sh --check
       - run: cargo test --locked --all-targets
       - run: cargo test --locked --doc
+      - run: python3 scripts/test-package-toolchain.py
       - run: python3 scripts/test-package.py
       - run: python3 scripts/test-commit-policy.py
       - run: cargo clippy --all-targets --all-features -- -D warnings

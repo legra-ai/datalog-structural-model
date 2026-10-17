@@ -1,5 +1,6 @@
 """Verify the published archive includes and passes the repository test suite."""
 
+import os
 import pathlib
 import subprocess
 import tarfile
@@ -12,6 +13,12 @@ def main():
     manifest = tomllib.loads((root / "Cargo.toml").read_text())
     package = manifest["package"]
     stem = f"{package['name']}-{package['version']}"
+    # Extracted archives live outside the checkout's rustup directory override.
+    # Preserve the exact selected compiler rather than using the runner default.
+    toolchain = subprocess.check_output(
+        ["rustup", "show", "active-toolchain"], cwd=root, text=True
+    ).split()[0]
+    environment = dict(os.environ, RUSTUP_TOOLCHAIN=toolchain)
     tests = subprocess.check_output(
         ["git", "ls-files", "tests/"], cwd=root, text=True
     ).splitlines()
@@ -25,7 +32,7 @@ def main():
                 "cargo", "package", "--allow-dirty", "--no-verify",
                 "--target-dir", str(target),
             ],
-            cwd=root, check=True,
+            cwd=root, env=environment, check=True,
         )
         with tarfile.open(target / "package" / f"{stem}.crate") as archive:
             members = set(archive.getnames())
@@ -40,7 +47,7 @@ def main():
             subprocess.run(
                 ["cargo", "test", "--locked", selection,
                  "--target-dir", str(target / "test-build")],
-                cwd=unpacked, check=True,
+                cwd=unpacked, env=environment, check=True,
             )
 
 
