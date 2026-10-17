@@ -26,7 +26,8 @@ use super::symbols::{ConstantSymbol, VariableSymbol};
 /// [`super::error::ProgramValidationError::SkolemInBodyAtom`]
 /// because a SKOLEM term has no pattern semantics (it's a
 /// function, not a wildcard).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub enum Term {
     /// Variable term.
     Variable(VariableSymbol),
@@ -52,11 +53,22 @@ pub enum Term {
 }
 
 impl Term {
-    #[must_use]
-    pub(super) fn variable_name(&self) -> Option<&VariableSymbol> {
+    pub(super) fn collect_variables(&self, out: &mut std::collections::BTreeSet<VariableSymbol>) {
         match self {
-            Self::Variable(var) => Some(var),
-            Self::Constant(_) | Self::TripleTerm(_) | Self::Skolem { .. } => None,
+            Self::Variable(var) => {
+                out.insert(var.clone());
+            }
+            Self::Constant(_) => {}
+            Self::TripleTerm(atom) => {
+                for term in &atom.terms {
+                    term.collect_variables(out);
+                }
+            }
+            Self::Skolem { args, .. } => {
+                for term in args {
+                    term.collect_variables(out);
+                }
+            }
         }
     }
 

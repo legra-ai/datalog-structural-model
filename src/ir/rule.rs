@@ -9,7 +9,8 @@ use super::literal::Literal;
 use super::symbols::VariableSymbol;
 
 /// Datalog rule: `head :- body_1, ..., body_n`.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "super::serde_input::RuleInput")]
 pub struct Rule {
     /// Head atom.
     pub head: Atom,
@@ -18,6 +19,19 @@ pub struct Rule {
 }
 
 impl Rule {
+    /// Construct a standalone rule only when it is safe and stratifiable.
+    /// # Errors
+    /// Rejects invalid terms, unsafe variables and recursion through negation.
+    pub fn try_new(head: Atom, body: Vec<Literal>) -> Result<Self, super::ProgramValidationError> {
+        let rule = Self { head, body };
+        // bounded: one authored rule, not a fact relation or graph.
+        super::Program {
+            rules: vec![rule.clone()],
+        }
+        .validate()?;
+        Ok(rule)
+    }
+
     /// Construct a rule whose body contains only positive literals.
     ///
     /// Convenience for the common case — callers that do not need
@@ -210,18 +224,6 @@ impl Rule {
         })
     }
 
-    /// Returns `true` when any body atom — positive, negative, or
-    /// inside an aggregate's `inner_body` — carries a
-    /// [`super::term::Term::Skolem`] term. SKOLEM is only
-    /// meaningful in head positions; body matches against a
-    /// SKOLEM-derived IRI would unify against a value the EDB
-    /// can't produce. Reported as
-    /// [`super::error::ProgramValidationError::SkolemInBodyAtom`].
-    #[must_use]
-    pub(super) fn has_skolem_in_body(&self) -> bool {
-        self.body.iter().any(literal_contains_skolem)
-    }
-
     /// Variables bound by the time the rule head fires: positive
     /// body atoms, every `Bind` output variable, and every
     /// `Aggregate` body literal's exported variables
@@ -265,33 +267,7 @@ impl Rule {
     }
 }
 
-/// Returns `true` when the literal carries a SKOLEM term anywhere
-/// in its sub-tree. Filters and binds never name predicates, so
-/// they're SKOLEM-free by construction; aggregates expose their
-/// inner atoms (themselves possibly SKOLEM-bearing).
-fn literal_contains_skolem(lit: &Literal) -> bool {
-    match lit {
-        Literal::Positive(atom) | Literal::Negative(atom) => atom.contains_skolem(),
-        Literal::Aggregate(agg) => agg.inner_body.iter().any(literal_contains_skolem),
-        Literal::Filter(_) | Literal::Bind { .. } => false,
-    }
-}
-
-/// Per-kind safety check for an aggregate's inner body.
-///
-/// Mirrors the outer-rule safety rules
-/// ([`Rule::unsafe_negative_variables`] /
-/// [`Rule::unsafe_filter_variables`] /
-/// [`Rule::unsafe_bind_variables`]) applied to the inner scope:
-///
-/// - inner negative literals reference only variables that an inner positive
-///   atom or `BIND` binds;
-/// - inner filters reference only those inner-bound variables;
-/// - inner `BIND` expressions reference only earlier inner positives / binds
-///   and the `BIND` output variable is fresh inside the inner scope.
-///
-/// Nested aggregates are out of scope here — see
-/// [`Rule::has_nested_aggregate_in_inner_body`].
+/// Validate variable safety inside an aggregate's inner body.
 fn unsafe_inner_body_variables(
     agg: &AggregateBody,
     inner_bound: &BTreeSet<VariableSymbol>,

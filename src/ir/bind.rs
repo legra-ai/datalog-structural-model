@@ -31,7 +31,8 @@ use super::term::Term;
 /// literal (empty datatype IRI); the result of `StrLen` is an
 /// `xsd:integer` literal so subsequent arithmetic can consume it
 /// without re-parsing.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub enum BindExpr {
     /// Identity — bind the variable to the term itself (typically
     /// useful in the form `BIND(?x AS ?y)` for renaming).
@@ -247,9 +248,7 @@ impl BindExpr {
     fn collect_variables(&self, out: &mut BTreeSet<VariableSymbol>) {
         match self {
             Self::Term(term) => {
-                if let Some(name) = term.variable_name() {
-                    out.insert(name.clone());
-                }
+                term.collect_variables(out);
             }
             Self::Add(lhs, rhs)
             | Self::Sub(lhs, rhs)

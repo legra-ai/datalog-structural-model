@@ -30,7 +30,8 @@ use super::symbols::VariableSymbol;
 /// constraints over computed values). Filter and bind literals
 /// participate in safety analysis but contribute no edges to the
 /// predicate dependency graph used by stratification.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub enum Literal {
     /// Positive literal — the body atom must match a fact.
     Positive(Atom),

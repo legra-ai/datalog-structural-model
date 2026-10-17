@@ -8,7 +8,8 @@ use super::symbols::{PredicateSymbol, VariableSymbol};
 use crate::stratify::StratificationError;
 
 /// Program validation failures.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub enum ProgramValidationError {
     /// Rule is unsafe because one or more head variables are
     /// missing from the positive body literals.
@@ -149,6 +150,11 @@ pub enum ProgramValidationError {
         /// Configured limit at the time of validation.
         limit: usize,
     },
+    /// A Skolem argument is neither a variable nor a constant.
+    InvalidSkolemArguments {
+        /// Rule containing the invalid term.
+        rule_index: usize,
+    },
 }
 
 impl From<StratificationError> for ProgramValidationError {
@@ -287,6 +293,10 @@ impl fmt::Display for ProgramValidationError {
                      SKOLEM is only allowed in head atoms (extension)"
                 )
             }
+            Self::InvalidSkolemArguments { rule_index } => write!(
+                f,
+                "rule at index {rule_index} has non-flat Skolem arguments"
+            ),
             Self::TripleTermNestingExceeded {
                 rule_index,
                 depth,

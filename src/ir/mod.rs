@@ -10,8 +10,12 @@ mod ground;
 mod literal;
 mod program;
 mod rule;
+mod serde_input;
+mod symbol_serde;
 mod symbols;
 mod term;
+mod term_shape;
+pub(crate) mod walk;
 
 #[cfg(test)]
 mod tests;

@@ -33,7 +33,10 @@ use super::symbols::VariableSymbol;
 /// MIN, MAX, SUM, COUNT, AVG. SPARQL's `SAMPLE` and
 /// `GROUP_CONCAT` are not in scope for extension — they map onto
 /// SPARQL's `Group` operator rather than a Datalog rule body.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
+#[serde(deny_unknown_fields)]
 pub enum Aggregator {
     /// `COUNT(?expr)` — number of distinct `?expr` values that
     /// appear in the inner result set.
@@ -100,7 +103,8 @@ impl Aggregator {
 /// Nested aggregates inside an aggregate's inner body are rejected
 /// at validation time as
 /// [`super::error::ProgramValidationError::NestedAggregateInInnerBody`].
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AggregateBody {
     /// The variable that receives the per-group aggregate
     /// result.

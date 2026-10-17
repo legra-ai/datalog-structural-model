@@ -1,22 +1,30 @@
 //! Datalog [`Program`] — an ordered set of [`Rule`]s plus
 //! validation and stratification entry points.
 
-use super::atom::Atom;
 use super::equality_mode::EqualityMode;
 use super::error::ProgramValidationError;
 use super::literal::Literal;
 use super::rule::Rule;
-use super::term::MAX_TRIPLE_TERM_NESTING;
 use crate::stratify::{Stratification, stratify};
 
 /// Datalog program as an ordered set of rules.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "super::serde_input::ProgramInput")]
 pub struct Program {
     /// Program rules.
     pub rules: Vec<Rule>,
 }
 
 impl Program {
+    /// Construct a program only when all safety and stratification checks pass.
+    /// # Errors
+    /// Returns the same structural failures as [`Self::validate`].
+    pub fn try_new(rules: Vec<Rule>) -> Result<Self, ProgramValidationError> {
+        let program = Self { rules };
+        program.validate()?;
+        Ok(program)
+    }
+
     /// Validate all rules in the program for safety and
     /// stratifiability.
     ///
@@ -65,25 +73,7 @@ impl Program {
             check_equality_mode_compatibility(&self.rules)?;
         }
         for (index, rule) in self.rules.iter().enumerate() {
-            // Triple-term nesting bound — checked before the
-            // safety analyses because deeper nesting indicates a
-            // structural problem unrelated to variable binding.
-            let head_depth = rule.head.nesting_depth();
-            let body_depth = rule
-                .body
-                .iter()
-                .filter_map(Literal::atom)
-                .map(Atom::nesting_depth)
-                .max()
-                .unwrap_or(0);
-            let depth = head_depth.max(body_depth);
-            if depth > MAX_TRIPLE_TERM_NESTING {
-                return Err(ProgramValidationError::TripleTermNestingExceeded {
-                    rule_index: index,
-                    depth,
-                    limit: MAX_TRIPLE_TERM_NESTING,
-                });
-            }
+            rule.validate_term_shapes(index)?;
             let unsafe_head = rule.unsafe_head_variables();
             if !unsafe_head.is_empty() {
                 return Err(ProgramValidationError::UnsafeRule {
@@ -111,9 +101,6 @@ impl Program {
                     rule_index: index,
                     variables: unsafe_bind,
                 });
-            }
-            if rule.has_skolem_in_body() {
-                return Err(ProgramValidationError::SkolemInBodyAtom { rule_index: index });
             }
             if rule.has_nested_aggregate_in_inner_body() {
                 return Err(ProgramValidationError::NestedAggregateInInnerBody {
