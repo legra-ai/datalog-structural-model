@@ -1,18 +1,19 @@
 [package]
-name = "datalog-core"
+name = "datalog-structural-model"
 version = "0.1.0"
 description = "Typed Datalog rule IR, validation, and stratification"
 authors = ["Jacobus Geluk <jacobus.geluk@dataroad.com>"]
 edition = "2024"
 rust-version = "1.99.1"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/legra-ai/datalog-core"
-documentation = "https://docs.rs/datalog-core"
+repository = "https://github.com/legra-ai/datalog-structural-model"
+documentation = "https://docs.rs/datalog-structural-model"
 readme = "README.md"
 keywords = ["datalog", "rules", "logic", "stratification", "ir"]
 categories = ["data-structures", "parser-implementations"]
 publish = true
 build = "build.rs"
+include = ["Cargo.toml", "build.rs", "README.md", "LICENSE-APACHE", "LICENSE-MIT", "src/**/*.rs", "tests/**/*.rs"]
 
 [dependencies]
 rustc-hash = "2"

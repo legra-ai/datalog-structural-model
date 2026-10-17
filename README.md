@@ -1,14 +1,14 @@
-# datalog-core
+# datalog-structural-model
 
-[![Crates.io](https://img.shields.io/crates/v/datalog-core.svg?cacheSeconds=300)](https://crates.io/crates/datalog-core)
-[![Documentation](https://docs.rs/datalog-core/badge.svg?cacheSeconds=300)](https://docs.rs/datalog-core)
-[![CI](https://github.com/legra-ai/datalog-core/actions/workflows/ci.yml/badge.svg?branch=main&cacheSeconds=300)](https://github.com/legra-ai/datalog-core/actions/workflows/ci.yml)
-[![Downloads](https://img.shields.io/crates/d/datalog-core.svg?cacheSeconds=300)](https://crates.io/crates/datalog-core)
-[![License](https://img.shields.io/crates/l/datalog-core.svg?cacheSeconds=300)](LICENSE-APACHE)
+[![Crates.io](https://img.shields.io/crates/v/datalog-structural-model.svg?cacheSeconds=300)](https://crates.io/crates/datalog-structural-model)
+[![Documentation](https://docs.rs/datalog-structural-model/badge.svg?cacheSeconds=300)](https://docs.rs/datalog-structural-model)
+[![CI](https://github.com/legra-ai/datalog-structural-model/actions/workflows/ci.yml/badge.svg?branch=main&cacheSeconds=300)](https://github.com/legra-ai/datalog-structural-model/actions/workflows/ci.yml)
+[![Downloads](https://img.shields.io/crates/d/datalog-structural-model.svg?cacheSeconds=300)](https://crates.io/crates/datalog-structural-model)
+[![License](https://img.shields.io/crates/l/datalog-structural-model.svg?cacheSeconds=300)](LICENSE-APACHE)
 
 Typed Datalog rule programs, validation, and stratification analysis.
 
-`datalog-core` is the finite rule-program layer between a rule authoring or
+`datalog-structural-model` is the finite rule-program layer between a rule authoring or
 compiler front-end and an evaluator. It models predicates, variables, terms,
 atoms, rules, filters, bindings, and aggregates, then validates safety and
 computes predicate strata for programs with negation.
@@ -21,7 +21,7 @@ spill-capable data paths.
 ## A small rule program
 
 ```rust
-use datalog_core::{
+use datalog_structural_model::{
     Atom,
     ConstantSymbol,
     Literal,
