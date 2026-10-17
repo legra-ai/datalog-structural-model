@@ -10,8 +10,13 @@ mod ground;
 mod literal;
 mod program;
 mod rule;
+mod serde_input;
+mod structural_term;
+mod symbol_serde;
 mod symbols;
 mod term;
+mod term_shape;
+pub(crate) mod walk;
 
 #[cfg(test)]
 mod tests;
@@ -28,3 +33,5 @@ pub use program::Program;
 pub use rule::Rule;
 pub use symbols::{ConstantSymbol, PredicateSymbol, VariableSymbol};
 pub use term::{MAX_TRIPLE_TERM_NESTING, Term};
+
+pub use structural_term::TermShapeError;

@@ -20,7 +20,10 @@ use super::symbols::{ConstantSymbol, PredicateSymbol};
 /// variant, the inner symbol or atom's lexicographic order
 /// determines the result. This is the determinism contract
 /// an evaluator can rely on when serialising grounded facts.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
+#[serde(try_from = "super::serde_input::GroundTermInput")]
 pub enum GroundTerm {
     /// Ground constant — the value form of
     /// [`Term::Constant`](super::term::Term::Constant).
@@ -67,7 +70,10 @@ impl From<ConstantSymbol> for GroundTerm {
 /// form with no variables anywhere in the argument tree. Used
 /// inside [`GroundTerm::TripleTerm`] so quoted-triple facts can
 /// be stored alongside flat facts in a fact set (TT1).
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
+#[serde(deny_unknown_fields)]
 pub struct GroundAtom {
     /// Predicate of the ground atom.
     pub predicate: PredicateSymbol,

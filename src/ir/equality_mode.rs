@@ -25,7 +25,10 @@
 /// to additionally reject negation and aggregation. The two
 /// methods share their other checks (safety, stratification,
 /// triple-term nesting).
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(
+    Clone, Copy, Debug, Default, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize,
+)]
+#[serde(deny_unknown_fields)]
 pub enum EqualityMode {
     /// No special equality-reasoning regime. All Datalog
     /// features — including negation and aggregation — are

@@ -7,7 +7,8 @@ use super::symbols::{PredicateSymbol, VariableSymbol};
 use super::term::Term;
 
 /// Datalog atom: `predicate(term_1, ..., term_n)`.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Atom {
     /// Predicate identifier.
     pub predicate: PredicateSymbol,
@@ -34,18 +35,8 @@ impl Atom {
 
     fn collect_variables(&self, acc: &mut BTreeSet<VariableSymbol>) {
         for term in &self.terms {
-            collect_term_variables(term, acc);
+            term.collect_variables(acc);
         }
-    }
-
-    /// Returns `true` when any argument (including those nested
-    /// inside a [`Term::TripleTerm`]) is a `SKOLEM(...)` term.
-    /// Used by validation to reject `SKOLEM` outside head atoms —
-    /// a SKOLEM term has no pattern semantics, so it can't appear
-    /// in a body literal.
-    #[must_use]
-    pub(super) fn contains_skolem(&self) -> bool {
-        self.terms.iter().any(term_contains_skolem)
     }
 
     /// Maximum [`Term::TripleTerm`] nesting depth observed
@@ -59,33 +50,6 @@ impl Atom {
             .map(Term::nesting_depth)
             .max()
             .unwrap_or(0)
-    }
-}
-
-fn collect_term_variables(term: &Term, acc: &mut BTreeSet<VariableSymbol>) {
-    match term {
-        Term::Variable(var) => {
-            acc.insert(var.clone());
-        }
-        Term::Constant(_) => {}
-        Term::TripleTerm(inner) => {
-            for child in &inner.terms {
-                collect_term_variables(child, acc);
-            }
-        }
-        Term::Skolem { args, .. } => {
-            for arg in args {
-                collect_term_variables(arg, acc);
-            }
-        }
-    }
-}
-
-fn term_contains_skolem(term: &Term) -> bool {
-    match term {
-        Term::Skolem { .. } => true,
-        Term::TripleTerm(inner) => inner.terms.iter().any(term_contains_skolem),
-        Term::Variable(_) | Term::Constant(_) => false,
     }
 }
 

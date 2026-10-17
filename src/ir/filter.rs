@@ -28,7 +28,8 @@ use super::term::Term;
 /// language-aware `REGEX` evaluation against `xsd:string`-only
 /// arguments, etc. — track as further extension follow-ups; see
 /// the rule validation specification.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub enum BuiltinFilter {
     /// `lhs = rhs` — equality of constants.
     Eq(Term, Term),
@@ -168,7 +169,5 @@ impl BuiltinFilter {
 }
 
 fn insert_variable(term: &Term, out: &mut BTreeSet<VariableSymbol>) {
-    if let Some(name) = term.variable_name() {
-        out.insert(name.clone());
-    }
+    term.collect_variables(out);
 }

@@ -5,7 +5,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::ir::{Atom, ConstantSymbol, PredicateSymbol, Term};
 
 /// Stratification of a Datalog¬ program.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Stratification {
     /// Strata ordered by ascending index. Stratum `k` must be
     /// evaluated to a fixed point before stratum `k+1`.
@@ -30,7 +31,8 @@ impl Stratification {
 }
 
 /// A single stratum — the set of predicates defined together.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Stratum {
     /// Predicates whose rules must be evaluated to a fixed point
     /// within this stratum.
@@ -38,7 +40,8 @@ pub struct Stratum {
 }
 
 /// Stratification failure.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub enum StratificationError {
     /// The predicate dependency graph contains a cycle that
     /// passes through a negation edge.
