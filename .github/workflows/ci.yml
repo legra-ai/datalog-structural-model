@@ -36,7 +36,7 @@ jobs:
           private-key: ${{ secrets.RELEASE_WRITER_APP_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
-      - uses: legra-ai/github-actions/.github/actions/prepare-cargo-release@43726badae3eab1612795a68ba5f65e9e842fc95
+      - uses: legra-ai/github-actions/.github/actions/prepare-cargo-release@f405b77142994c765a684143ff9bfc556a29b569
         id: release
         with:
           # Non-main preparation is read-only. A missing writer token on main
