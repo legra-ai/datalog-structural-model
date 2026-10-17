@@ -54,10 +54,11 @@ jobs:
         run: |
           IFS= read -r formatter_toolchain < rustfmt-toolchain || exit 1
           printf 'toolchain=%s\n' "$formatter_toolchain" >> "$GITHUB_OUTPUT"
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
           toolchain: ${{ steps.formatter.outputs.toolchain }}
           components: rustfmt
+          rustflags: -D warnings
       - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
           toolchain: 1.99.1
@@ -66,6 +67,7 @@ jobs:
       - run: ./scripts/fmt.sh --check
       - run: cargo test --locked --all-targets
       - run: cargo test --locked --doc
+      - run: python3 scripts/test-package-toolchain.py
       - run: python3 scripts/test-package.py
       - run: python3 scripts/test-commit-policy.py
       - run: cargo clippy --all-targets --all-features -- -D warnings
@@ -80,7 +82,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.revision }}
-      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          toolchain: 1.99.1
+          rustflags: -D warnings
       - run: cargo test --locked --all-targets
 
 
