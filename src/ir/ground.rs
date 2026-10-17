@@ -23,7 +23,7 @@ use super::symbols::{ConstantSymbol, PredicateSymbol};
 #[derive(
     Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
 )]
-#[serde(deny_unknown_fields)]
+#[serde(try_from = "super::serde_input::GroundTermInput")]
 pub enum GroundTerm {
     /// Ground constant — the value form of
     /// [`Term::Constant`](super::term::Term::Constant).

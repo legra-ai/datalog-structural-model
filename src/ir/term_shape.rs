@@ -1,6 +1,6 @@
 //! Validate terms in every body expression and aggregate scope.
 use super::walk::Visitor;
-use super::{Literal, MAX_TRIPLE_TERM_NESTING, ProgramValidationError, Rule, Term};
+use super::{Literal, ProgramValidationError, Rule, Term, TermShapeError};
 struct TermShapeValidator {
     rule_index: usize,
     in_body: bool,
@@ -14,28 +14,27 @@ impl Visitor for TermShapeValidator {
         if self.error.is_some() {
             return;
         }
-        let depth = term.nesting_depth();
-        if depth > MAX_TRIPLE_TERM_NESTING {
-            self.error = Some(ProgramValidationError::TripleTermNestingExceeded {
-                rule_index: self.rule_index,
-                depth,
-                limit: MAX_TRIPLE_TERM_NESTING,
+        if let Err(error) = term.validate_structure() {
+            self.error = Some(match error {
+                TermShapeError::TripleTermNestingExceeded { depth, limit } => {
+                    ProgramValidationError::TripleTermNestingExceeded {
+                        rule_index: self.rule_index,
+                        depth,
+                        limit,
+                    }
+                }
+                TermShapeError::InvalidSkolemArguments => {
+                    ProgramValidationError::InvalidSkolemArguments {
+                        rule_index: self.rule_index,
+                    }
+                }
             });
             return;
         }
-        if let Term::Skolem { args, .. } = term {
-            if self.in_body {
-                self.error = Some(ProgramValidationError::SkolemInBodyAtom {
-                    rule_index: self.rule_index,
-                });
-            } else if args
-                .iter()
-                .any(|arg| !matches!(arg, Term::Variable(_) | Term::Constant(_)))
-            {
-                self.error = Some(ProgramValidationError::InvalidSkolemArguments {
-                    rule_index: self.rule_index,
-                });
-            }
+        if self.in_body && matches!(term, Term::Skolem { .. }) {
+            self.error = Some(ProgramValidationError::SkolemInBodyAtom {
+                rule_index: self.rule_index,
+            });
         }
     }
 }

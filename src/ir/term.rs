@@ -27,7 +27,7 @@ use super::symbols::{ConstantSymbol, VariableSymbol};
 /// because a SKOLEM term has no pattern semantics (it's a
 /// function, not a wildcard).
 #[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(try_from = "super::serde_input::TermInput")]
 pub enum Term {
     /// Variable term.
     Variable(VariableSymbol),
