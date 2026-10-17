@@ -82,3 +82,24 @@ fn nested_skolem_arguments_are_rejected() {
         .is_err()
     );
 }
+
+#[test]
+fn skolem_terms_in_filters_and_bindings_are_rejected() {
+    let skolem = Term::Skolem {
+        name: ConstantSymbol::new("label"),
+        args: vec![],
+    };
+    assert!(
+        program(Literal::Filter(BuiltinFilter::IsIri(skolem.clone())))
+            .validate()
+            .is_err()
+    );
+    assert!(
+        program(Literal::Bind {
+            var: VariableSymbol::new("out"),
+            expr: BindExpr::Term(skolem)
+        })
+        .validate()
+        .is_err()
+    );
+}
