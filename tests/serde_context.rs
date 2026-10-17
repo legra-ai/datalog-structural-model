@@ -98,3 +98,18 @@ fn nested_unknown_semantics_are_not_discarded() {
         .is_err()
     );
 }
+
+#[test]
+fn decoded_program_errors_keep_the_original_rule_index() {
+    let p = Program {
+        rules: vec![
+            Rule::positive(atom("valid"), vec![atom("input")]),
+            Rule::new(atom("unbound"), vec![]),
+        ],
+    };
+    let json_error =
+        serde_json::from_str::<Program>(&serde_json::to_string(&p).unwrap()).unwrap_err();
+    assert!(json_error.to_string().contains("index 1"), "{json_error}");
+    // Binary decoding rejects the same invalid program.
+    assert!(postcard::from_bytes::<Program>(&postcard::to_allocvec(&p).unwrap()).is_err());
+}

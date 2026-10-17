@@ -4,12 +4,18 @@ use super::{Atom, Literal, Program, ProgramValidationError, Rule};
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct ProgramInput {
-    rules: Vec<Rule>,
+    rules: Vec<RuleInput>,
 }
 impl TryFrom<ProgramInput> for Program {
     type Error = ProgramValidationError;
     fn try_from(input: ProgramInput) -> Result<Self, Self::Error> {
-        Self::try_new(input.rules)
+        Self::try_new(
+            input
+                .rules
+                .into_iter()
+                .map(RuleInput::into_description)
+                .collect(),
+        )
     }
 }
 
@@ -18,6 +24,14 @@ impl TryFrom<ProgramInput> for Program {
 pub(super) struct RuleInput {
     head: Atom,
     body: Vec<Literal>,
+}
+impl RuleInput {
+    // Preserve the surrounding program's original rule indices. Only the
+    // private decoding description bypasses per-rule checks; Program::try_new
+    // immediately validates the complete program with the correct context.
+    fn into_description(self) -> Rule {
+        Rule::new(self.head, self.body)
+    }
 }
 impl TryFrom<RuleInput> for Rule {
     type Error = ProgramValidationError;
