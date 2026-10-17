@@ -38,7 +38,7 @@ class CommitPolicyTests(unittest.TestCase):
         workflow = (root / ".github/workflows/ci.yml").read_text()
         steps = re.split(r"^      - ", workflow, flags=re.MULTILINE)
         setups = [step for step in steps if step.startswith("uses: actions-rust-lang/setup-rust-toolchain@")]
-        self.assertEqual(len(setups), 2, "Both test and publish must configure Rust")
+        self.assertEqual(len(setups), 4, "Formatter, Linux, Windows and publish must configure Rust")
         for step in setups:
             with self.subTest(step=step):
                 # Keep warnings fatal in both validation and publication builds.
@@ -57,7 +57,7 @@ class CommitPolicyTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/ci.yml").read_text()
         windows = workflow.split("\n  windows:\n", 1)[1].split("\n  publish:\n", 1)[0]
-        self.assertRegex(windows, r"uses: dtolnay/rust-toolchain@[0-9a-f]{40}\n")
+        self.assertIn("uses: actions-rust-lang/setup-rust-toolchain@v2\n", windows)
         self.assertIn("          toolchain: 1.99.1\n", windows)
 
     def test_commit_header_contract(self):
