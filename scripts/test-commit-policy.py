@@ -53,6 +53,13 @@ class CommitPolicyTests(unittest.TestCase):
         self.assertNotIn("cargo +nightly ", workflow)
         self.assertIn("./scripts/fmt.sh --check", (root / ".githooks/pre-commit").read_text())
 
+    def test_windows_installer_cannot_override_compiler_policy(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/ci.yml").read_text()
+        windows = workflow.split("\n  windows:\n", 1)[1].split("\n  publish:\n", 1)[0]
+        self.assertRegex(windows, r"uses: dtolnay/rust-toolchain@[0-9a-f]{40}\n")
+        self.assertIn("          toolchain: 1.99.1\n", windows)
+
     def test_commit_header_contract(self):
         hook = Path(__file__).resolve().parents[1] / ".githooks/commit-msg"
         cases = [
