@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "datalog-core"
+name = "datalog-structural-model"
 version = "0.1.0"
 dependencies = [
  "rhusky",

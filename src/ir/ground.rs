@@ -66,7 +66,7 @@ impl From<ConstantSymbol> for GroundTerm {
 /// Ground form of an [`Atom`](super::atom::Atom) — the value
 /// form with no variables anywhere in the argument tree. Used
 /// inside [`GroundTerm::TripleTerm`] so quoted-triple facts can
-/// be stored alongside flat facts in a [`FactSet`] (TT1).
+/// be stored alongside flat facts in a fact set (TT1).
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct GroundAtom {
     /// Predicate of the ground atom.
@@ -109,7 +109,7 @@ impl fmt::Display for GroundTerm {
 }
 
 /// Display a [`GroundAtom`] as `predicate(arg_1, arg_2, …)`.
-/// Used by [`GroundTerm`]'s [`Display`] impl for non-2-arity
+/// Used by [`GroundTerm`]'s [`std::fmt::Display`] impl for non-2-arity
 /// triple-term values.
 impl fmt::Display for GroundAtom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

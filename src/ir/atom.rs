@@ -90,7 +90,7 @@ fn term_contains_skolem(term: &Term) -> bool {
 }
 
 /// Display an [`Atom`] as `predicate(term_1, term_2, …)`. Used
-/// directly by [`Term`]'s [`Display`] impl for non-2-arity
+/// directly by [`Term`]'s [`std::fmt::Display`] impl for non-2-arity
 /// triple terms and available to error messages / debugging.
 impl fmt::Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

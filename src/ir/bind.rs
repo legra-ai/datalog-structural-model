@@ -25,7 +25,7 @@ use super::term::Term;
 ///
 /// **String semantics**: `Str`, `StrLen`, `UCase`, `LCase`, and
 /// `Concat` operate on the lexical form of literals (when the
-/// operand classifies as a literal under [`crate::kind::classify`])
+/// operand classifies as a literal under the evaluator’s RDF term classification)
 /// or on the constant string itself otherwise. The result of
 /// `Str` / `UCase` / `LCase` / `Concat` is encoded as a plain
 /// literal (empty datatype IRI); the result of `StrLen` is an

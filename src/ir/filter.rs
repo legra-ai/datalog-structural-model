@@ -58,7 +58,7 @@ pub enum BuiltinFilter {
     /// datatype-insensitivity as [`Self::StrStarts`].
     Contains(Term, Term),
     /// `REGEX(value, pattern, flags?)` — `value` matches the
-    /// [`regex::Regex`] compiled from `pattern` (and the optional
+    /// `regex::Regex` compiled from `pattern` (and the optional
     /// `flags`), comparing against `value`'s lexical form (same
     /// datatype-insensitivity as [`Self::StrStarts`]). Supported
     /// flags follow the SPARQL subset that maps to the
@@ -80,7 +80,7 @@ pub enum BuiltinFilter {
         flags: Option<Term>,
     },
     /// `isIRI(?x)` — true when `?x` resolves to an IRI under the
-    /// term-kind classification in [`crate::kind::classify`].
+    /// term-kind classification in the evaluator’s RDF term classification.
     IsIri(Term),
     /// `isLiteral(?x)` — true when `?x` resolves to a literal.
     IsLiteral(Term),
@@ -88,7 +88,7 @@ pub enum BuiltinFilter {
     IsBlank(Term),
     /// `isNumeric(?x)` — true when `?x` resolves to a literal
     /// whose datatype IRI is recognized as numeric by
-    /// [`crate::kind::is_numeric_datatype`].
+    /// the evaluator’s numeric datatype classification.
     IsNumeric(Term),
     /// `LANGMATCHES(language-tag, language-range)` — RFC 4647
     /// basic-range matching over the lexical form of both

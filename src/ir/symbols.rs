@@ -44,7 +44,7 @@ impl PredicateSymbol {
 /// Variable symbol used in Datalog terms.
 ///
 /// Carries a precomputed `FxHash` of its name alongside the
-/// `Arc<str>` so [`HashMap`]-keyed lookups (notably the forward
+/// `Arc<str>` so [`std::collections::HashMap`]-keyed lookups (notably the forward
 /// engine bindings) hash a single `u64` instead of walking
 /// the name bytes on every probe.
 #[derive(Clone, Debug)]
