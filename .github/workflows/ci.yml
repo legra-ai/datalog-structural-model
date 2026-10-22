@@ -108,7 +108,7 @@ jobs:
         with:
           version: ${{ needs.prepare.outputs.version }}
           revision: ${{ needs.prepare.outputs.revision }}
-      - uses: legra-ai/github-actions/.github/actions/generate-changelog@0d5fd7d41649028722dd3deb48daf2a6f0a56226
+      - uses: legra-ai/github-actions/.github/actions/generate-changelog@b43be320c2c8e9a59152d08930e651e592ebd57f
         with:
           revision: ${{ needs.prepare.outputs.revision }}
           output-file: CHANGELOG_RELEASE.md
