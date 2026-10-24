@@ -1,109 +1,45 @@
-//! Public stratification result types and error.
+//! Public rule scheduling result types and errors.
 
-use std::collections::{BTreeMap, BTreeSet};
+use crate::ir::PredicateSymbol;
+use std::collections::BTreeSet;
 
-use crate::ir::{Atom, ConstantSymbol, PredicateSymbol, Term};
-
-/// Stratification of a Datalog¬ program.
+/// Rule-level stratification of a finite Datalog program.
+///
+/// Dependencies connect a producer to a consumer only when the producer's
+/// complete head pattern can unify with a body atom. EDB facts are available
+/// before stratum zero. Rule indices refer to the analyzed program's rule order.
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Stratification {
-    /// Strata ordered by ascending index. Stratum `k` must be
-    /// evaluated to a fixed point before stratum `k+1`.
+    /// Strata in evaluation order; close each to a fixed point before advancing.
     pub strata: Vec<Stratum>,
-    /// Map from predicate to its stratum index. All context nodes of a
-    /// predicate share scheduling constraints because a public stratum
-    /// evaluates the entire predicate. Every negative or aggregate dependency
-    /// must therefore refer to a predicate in a strictly lower stratum.
-    pub predicate_stratum: BTreeMap<PredicateSymbol, usize>,
+    /// One stratum index for each rule, in program order.
+    pub rule_stratum: Vec<usize>,
 }
 
 impl Stratification {
-    /// Returns the stratum index for a predicate, or `None` if
-    /// the predicate does not appear in the program (pure EDB
-    /// predicates not derived by any rule).
+    /// Return the stratum of a rule, or `None` for an out-of-range rule index.
     #[must_use]
-    pub fn stratum_of(&self, predicate: &PredicateSymbol) -> Option<usize> {
-        self.predicate_stratum.get(predicate).copied()
+    pub fn stratum_of_rule(&self, rule_index: usize) -> Option<usize> {
+        self.rule_stratum.get(rule_index).copied()
     }
 }
 
-/// A single stratum — the set of predicates defined together.
+/// A set of rules evaluated together to a fixed point.
 #[derive(Clone, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Stratum {
-    /// Predicates whose rules must be evaluated to a fixed point
-    /// within this stratum.
-    pub predicates: BTreeSet<PredicateSymbol>,
+    /// Indices into the analyzed program's rule list.
+    pub rules: BTreeSet<usize>,
 }
 
 /// Stratification failure.
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub enum StratificationError {
-    /// The predicate dependency graph contains a cycle that
-    /// passes through a negation edge.
+    /// A cycle of compatible rule dependencies contains negation or aggregation.
     UnstratifiableCycle {
-        /// Every predicate in the offending strongly connected
-        /// component.
+        /// Predicates of the rules in the offending component, sorted and unique.
         predicates: Vec<PredicateSymbol>,
     },
-}
-
-/// Classification of a rule head's trailing graph slot (context-aware).
-///
-/// Stratification keys dependency-graph nodes on
-/// `(PredicateSymbol, HeadGraphClass)` so a producer that pins
-/// every inferred quad to a fixed graph
-/// (`GraphExpr::Literal { graph }` in the reasoner — head ends in
-/// a constant graph IRI) creates a node that's distinct from a
-/// producer emitting into a body-inherited graph
-/// (`GraphExpr::InheritFromBody { .. }` — head ends in a graph
-/// variable like `__g0`). Downstream consumers that constrain
-/// their body graph slot to a constant IRI then depend only on
-/// the producers compatible with that graph.
-///
-/// For the canonical RDFS / OWL-RL profile every rule head ends
-/// in a graph variable (context-aware's `InheritFromBody { 0 }` default),
-/// so every node collapses to [`HeadGraphClass::Inherit`] and the
-/// per-predicate strata that come out the other end match the
-/// pre-context-aware algorithm bit-for-bit.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub(super) enum HeadGraphClass {
-    /// Head has no trailing term — pre-context-aware narrow atoms
-    /// (predicate-only facts or rules whose head atom is
-    /// constructed without a graph slot).
-    Narrow,
-    /// Head's trailing graph term is a variable — the inferred
-    /// quad inherits its graph from whichever body atom binds
-    /// that variable, so the rule contributes facts to every
-    /// graph class its body atom matches.
-    Inherit,
-    /// Head's trailing graph term is a constant IRI — every
-    /// inferred quad lands in this fixed graph.
-    Literal(ConstantSymbol),
-}
-
-impl HeadGraphClass {
-    /// Classify a head atom's trailing term.
-    ///
-    /// The classification mirrors how the reasoner's
-    /// `GraphExpr` rewrites head atoms at compile time
-    /// ([`super::super`] of this module sees only the resulting
-    /// term, not the original `GraphExpr`):
-    ///
-    /// - trailing `Term::Variable` → [`HeadGraphClass::Inherit`]
-    /// - trailing `Term::Constant` → [`HeadGraphClass::Literal`]
-    /// - no trailing term → [`HeadGraphClass::Narrow`]
-    /// - trailing `Term::TripleTerm` / `Term::Skolem` collapses to
-    ///   [`HeadGraphClass::Inherit`] because both produce a value computed from
-    ///   body bindings rather than a fixed IRI known at compile time.
-    #[must_use]
-    pub(super) fn classify(head: &Atom) -> Self {
-        match head.terms.last() {
-            None => Self::Narrow,
-            Some(Term::Constant(c)) => Self::Literal(c.clone()),
-            Some(Term::Variable(_) | Term::TripleTerm(_) | Term::Skolem { .. }) => Self::Inherit,
-        }
-    }
 }

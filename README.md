@@ -11,7 +11,7 @@ Typed Datalog rule programs, validation, and stratification analysis.
 `datalog-structural-model` is the finite rule-program layer between a rule authoring or
 compiler front-end and an evaluator. It models predicates, variables, terms,
 atoms, rules, filters, bindings, and aggregates, then validates safety and
-computes predicate strata for programs with negation.
+computes rule strata over complete tuple patterns for programs with negation.
 
 It does not read input data, execute rules, retain a fact store, or collect
 solutions. Evaluation engines can consume a validated `Program` while keeping

@@ -103,17 +103,34 @@ fn every_three_predicate_signed_graph_matches_the_reference() {
         for with_contexts in [false, true] {
             let result = dependencies.program(with_contexts).stratify();
             match expected {
-                None => assert!(result.is_err(), "graph {index}, contexts={with_contexts}"),
+                None if !with_contexts => assert!(result.is_err(), "graph {index}"),
+                None => assert!(result.is_ok(), "disjoint tuples, graph {index}"),
                 Some(expected) => {
                     let actual = result.unwrap_or_else(|error| {
                         panic!("graph {index}, contexts={with_contexts}: {error:?}")
                     });
-                    for (predicate, expected) in PREDICATES.iter().zip(expected) {
-                        assert_eq!(
-                            actual.stratum_of(&PredicateSymbol::new(*predicate)),
-                            Some(expected),
-                            "graph {index}, contexts={with_contexts}, predicate={predicate}"
-                        );
+                    // Seed rules have no dependencies. Each later rule has
+                    // one signed edge. Disjoint input/output tuple constants
+                    // eliminate every producer edge in the tuple variant.
+                    assert_eq!(&actual.rule_stratum[..3], &[0, 0, 0]);
+                    let mut rule_index = 3;
+                    for (source, row) in dependencies.0.iter().enumerate() {
+                        for edge in row {
+                            if *edge == 0 {
+                                continue;
+                            }
+                            let level = if with_contexts {
+                                0
+                            } else {
+                                expected[source] + usize::from(*edge == 2)
+                            };
+                            assert_eq!(
+                                actual.stratum_of_rule(rule_index),
+                                Some(level),
+                                "graph {index}, tuples={with_contexts}, rule={rule_index}"
+                            );
+                            rule_index += 1;
+                        }
                     }
                 }
             }

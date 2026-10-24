@@ -1,27 +1,13 @@
-//! Stratification analysis for Datalog¬ programs.
+//! Rule-level stratification over complete tuple patterns.
 //!
-//! A Datalog¬ program is *stratified* when its predicate
-//! dependency graph contains no cycle that passes through a
-//! negation edge. Stratification assigns each predicate to a
-//! stratum such that every negation edge runs from a lower
-//! stratum to a strictly higher one; the evaluator then closes
-//! each stratum to a fixed point before moving on to the next, so
-//! every negated atom is evaluated against an already-closed fact
-//! set.
-//!
-//! The algorithm:
-//!
-//! 1. Build the predicate dependency graph — for each rule `H :- B_1, ...,
-//!    B_n`, add an edge `B_i.predicate → H.predicate` tagged positive or
-//!    negative depending on `B_i`'s polarity.
-//! 2. Find strongly connected components (Tarjan).
-//! 3. If any SCC contains an internal negation edge, reject with
-//!    [`StratificationError::UnstratifiableCycle`].
-//! 4. Assign strata by topologically processing SCCs and taking the max stratum
-//!    of predecessor SCCs, +1 if the incoming edge is negative.
+//! A producer precedes every consumer whose body can match its head. Negative
+//! and aggregate dependencies require a strictly earlier stratum. A component
+//! containing a strict dependency is rejected. Pure EDB inputs are closed before
+//! rule evaluation starts. The dependency traversal uses a heap-backed stack.
 
 mod entry;
 mod graph;
+mod pattern;
 mod tarjan;
 mod types;
 
