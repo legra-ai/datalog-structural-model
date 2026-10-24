@@ -1,6 +1,6 @@
 [package]
 name = "datalog-structural-model"
-version = "1.0.0"
+version = "1.0.1"
 description = "Typed Datalog rule IR, validation, and stratification"
 authors = ["Jacobus Geluk <jacobus.geluk@dataroad.com>"]
 edition = "2024"
