@@ -27,11 +27,8 @@ fn deep_dependency_chain_uses_heap_traversal() {
                     .collect();
                 let program = Program { rules };
                 let strata = program.stratify().unwrap();
-                assert_eq!(strata.strata.len(), 4097);
-                assert_eq!(
-                    strata.stratum_of(&PredicateSymbol::new("p04096")),
-                    Some(4096)
-                );
+                assert_eq!(strata.strata.len(), 4096);
+                assert_eq!(strata.stratum_of_rule(4095), Some(4095));
             })
             .unwrap()
             .join()

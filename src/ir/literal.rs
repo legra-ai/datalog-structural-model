@@ -13,10 +13,9 @@ use super::symbols::VariableSymbol;
 /// Rule bodies in Datalog¬ are conjunctions of literals. Positive
 /// literals must match facts in the database; negative literals
 /// must **not** match. Negation semantics follow the stratified
-/// negation-as-failure convention: every negated atom references
-/// only predicates in strictly lower strata, so the set of facts
-/// the negation is evaluated against is already closed by the time
-/// the rule fires.
+/// negation-as-failure convention: every rule whose head can match a
+/// negated atom runs in a strictly lower stratum. The matching fact
+/// extension is therefore closed by the time the consuming rule fires.
 ///
 /// `Filter` literals carry a [`BuiltinFilter`] expression that
 /// guards the current candidate binding — the evaluator drops a
@@ -29,7 +28,7 @@ use super::symbols::VariableSymbol;
 /// further `Bind`s, `Filter`s, the rule head, and SPARQL-style
 /// constraints over computed values). Filter and bind literals
 /// participate in safety analysis but contribute no edges to the
-/// predicate dependency graph used by stratification.
+/// rule dependency graph used by stratification.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub enum Literal {

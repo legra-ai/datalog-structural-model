@@ -155,7 +155,7 @@ fn filter_does_not_contribute_to_stratification_dependencies() {
     // The IDB predicate `p` should be in a single stratum
     // alongside `q`. Filters never bump the stratum.
     let strat = program.stratify().expect("stratifiable");
-    assert!(strat.stratum_of(&PredicateSymbol::new("p")).is_some());
+    assert!(strat.stratum_of_rule(0).is_some());
 }
 
 #[test]
