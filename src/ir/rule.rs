@@ -64,8 +64,8 @@ impl Rule {
     ///    some positive body atom or `Bind` — filters guard candidate bindings,
     ///    they do not produce them.
     /// 4. Every variable inside a [`Literal::Bind`] expression is bound by an
-    ///    **earlier** positive body atom or `Bind`, and the `Bind`'s output
-    ///    variable is fresh (not bound by any earlier positive atom or `Bind`).
+    ///    positive body atom, an earlier `Bind`, or an earlier aggregate export,
+    ///    and the `Bind`'s output variable is fresh in that bound set.
     #[must_use]
     pub fn is_safe(&self) -> bool {
         let unsafe_head = self.unsafe_head_variables();
@@ -128,7 +128,7 @@ impl Rule {
     /// Position-aware safety check for `BIND(expr AS ?var)`.
     ///
     /// Walks the body in order, building up the set of variables
-    /// bound by every positive atom and prior `Bind`. Each
+    /// bound by every positive atom, prior `Bind`, and prior aggregate export. Each
     /// `Bind` is inspected when first encountered:
     ///
     /// * every variable inside `expr` must already be in the bound-set (i.e.
@@ -147,6 +147,10 @@ impl Rule {
         let mut bound = self.positive_atom_variables();
         let mut errors: BTreeSet<VariableSymbol> = BTreeSet::new();
         for lit in &self.body {
+            if let Literal::Aggregate(aggregate) = lit {
+                bound.extend(aggregate.exported_variables());
+                continue;
+            }
             let Literal::Bind { var, expr } = lit else {
                 continue;
             };
@@ -205,9 +209,9 @@ impl Rule {
                 errors.insert(agg.result_var.clone());
             }
             errors.extend(unsafe_inner_body_variables(agg, &inner_bound));
-            // Once this aggregate fires, its result_var becomes
-            // visible to subsequent body literals.
-            already_bound.insert(agg.result_var.clone());
+            // Both the result and grouping keys are visible to subsequent
+            // body literals; inner-only variables remain scoped inside.
+            already_bound.extend(agg.exported_variables());
         }
         errors.into_iter().collect()
     }
