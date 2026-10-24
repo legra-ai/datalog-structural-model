@@ -91,11 +91,9 @@ pub(crate) fn stratify(program: &Program) -> Result<Stratification, Stratificati
     }
 
     // Build the output: one Stratum per distinct index.
-    // context-aware rolls up node strata into per-predicate strata by
-    // taking the MAX stratum across all head-graph classes of a
-    // predicate — a producer that emits facts under more than
-    // one class must be scheduled late enough for every
-    // downstream consumer.
+    // Context nodes of each predicate are coupled before SCC computation,
+    // so they have identical strata. Project those constraints to the
+    // public predicate schedule only after dependency propagation.
     let max_stratum = scc_stratum.iter().copied().max().unwrap_or(0);
     let mut strata: Vec<Stratum> = (0..=max_stratum).map(|_| Stratum::default()).collect();
     let mut predicate_stratum: BTreeMap<PredicateSymbol, usize> = BTreeMap::new();

@@ -11,12 +11,10 @@ pub struct Stratification {
     /// Strata ordered by ascending index. Stratum `k` must be
     /// evaluated to a fixed point before stratum `k+1`.
     pub strata: Vec<Stratum>,
-    /// Map from predicate to its stratum index. context-aware rolls up
-    /// the underlying `(predicate, head-graph-class)` dependency
-    /// nodes by taking the **maximum** stratum across head-graph
-    /// classes of the same predicate — so a producer that emits
-    /// facts in more than one graph class is scheduled late
-    /// enough for every downstream consumer.
+    /// Map from predicate to its stratum index. All context nodes of a
+    /// predicate share scheduling constraints because a public stratum
+    /// evaluates the entire predicate. Every negative or aggregate dependency
+    /// must therefore refer to a predicate in a strictly lower stratum.
     pub predicate_stratum: BTreeMap<PredicateSymbol, usize>,
 }
 

@@ -108,7 +108,37 @@ impl DependencyGraph {
             }
         }
 
-        Self { edges, nodes }
+        let mut graph = Self { edges, nodes };
+        graph.couple_predicate_contexts();
+        graph
+    }
+
+    /// Public strata schedule whole predicates. Couple their context nodes
+    /// before computing SCCs so every consumer inherits every producer's
+    /// constraints, and context-local negation cannot evade cycle detection.
+    fn couple_predicate_contexts(&mut self) {
+        // bounded: one representative per predicate in the finite rule program.
+        let mut representatives: BTreeMap<PredicateSymbol, NodeKey> = BTreeMap::new();
+        for node in &self.nodes {
+            let Some(representative) = representatives.get(&node.0) else {
+                representatives.insert(node.0.clone(), node.clone());
+                continue;
+            };
+            self.edges
+                .entry(node.clone())
+                .or_default()
+                .push(DependencyEdge {
+                    target: representative.clone(),
+                    negated: false,
+                });
+            self.edges
+                .entry(representative.clone())
+                .or_default()
+                .push(DependencyEdge {
+                    target: node.clone(),
+                    negated: false,
+                });
+        }
     }
 
     /// Tarjan's strongly connected components, returning the
