@@ -13,6 +13,11 @@ pub(super) struct TarjanState {
     pub(super) result: Vec<BTreeSet<NodeKey>>,
 }
 
+struct TraversalFrame {
+    node: NodeKey,
+    next_edge: usize,
+}
+
 impl TarjanState {
     pub(super) fn new() -> Self {
         Self {
@@ -26,28 +31,50 @@ impl TarjanState {
     }
 
     pub(super) fn strong_connect(&mut self, v: &NodeKey, graph: &DependencyGraph) {
+        self.enter(v);
+        // bounded: at most one frame per node in the finite rule program.
+        let mut frames = vec![TraversalFrame {
+            node: v.clone(),
+            next_edge: 0,
+        }];
+        while let Some(frame) = frames.last_mut() {
+            let edge = graph
+                .edges
+                .get(&frame.node)
+                .and_then(|edges| edges.get(frame.next_edge));
+            if let Some(edge) = edge {
+                frame.next_edge += 1;
+                let target = &edge.target;
+                if !self.indices.contains_key(target) {
+                    self.enter(target);
+                    frames.push(TraversalFrame {
+                        node: target.clone(),
+                        next_edge: 0,
+                    });
+                } else if *self.on_stack.get(target).unwrap_or(&false) {
+                    let low = self.lowlink[&frame.node].min(self.indices[target]);
+                    self.lowlink.insert(frame.node.clone(), low);
+                }
+                continue;
+            }
+            let completed = frames.pop().expect("active traversal frame").node;
+            self.finish(&completed);
+            if let Some(parent) = frames.last() {
+                let low = self.lowlink[&parent.node].min(self.lowlink[&completed]);
+                self.lowlink.insert(parent.node.clone(), low);
+            }
+        }
+    }
+
+    fn enter(&mut self, v: &NodeKey) {
         self.indices.insert(v.clone(), self.index);
         self.lowlink.insert(v.clone(), self.index);
         self.index += 1;
         self.stack.push(v.clone());
         self.on_stack.insert(v.clone(), true);
+    }
 
-        if let Some(edges) = graph.edges.get(v) {
-            for edge in edges.clone() {
-                let w = &edge.target;
-                if !self.indices.contains_key(w) {
-                    self.strong_connect(w, graph);
-                    let w_low = self.lowlink[w];
-                    let v_low = self.lowlink[v];
-                    self.lowlink.insert(v.clone(), v_low.min(w_low));
-                } else if *self.on_stack.get(w).unwrap_or(&false) {
-                    let w_idx = self.indices[w];
-                    let v_low = self.lowlink[v];
-                    self.lowlink.insert(v.clone(), v_low.min(w_idx));
-                }
-            }
-        }
-
+    fn finish(&mut self, v: &NodeKey) {
         // Root of an SCC?
         if self.lowlink[v] == self.indices[v] {
             let mut scc = BTreeSet::new();
