@@ -209,9 +209,9 @@ impl Rule {
                 errors.insert(agg.result_var.clone());
             }
             errors.extend(unsafe_inner_body_variables(agg, &inner_bound));
-            // Once this aggregate fires, its result_var becomes
-            // visible to subsequent body literals.
-            already_bound.insert(agg.result_var.clone());
+            // Both the result and grouping keys are visible to subsequent
+            // body literals; inner-only variables remain scoped inside.
+            already_bound.extend(agg.exported_variables());
         }
         errors.into_iter().collect()
     }
