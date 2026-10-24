@@ -104,7 +104,7 @@ jobs:
         with:
           toolchain: 1.99.1
           rustflags: -D warnings
-      - uses: legra-ai/github-actions/.github/actions/tag-tested-release@b43be320c2c8e9a59152d08930e651e592ebd57f
+      - uses: legra-ai/github-actions/.github/actions/tag-tested-release@87feab0f30d03f3d2185de73efc07f1e67175d70
         with:
           version: ${{ needs.prepare.outputs.version }}
           revision: ${{ needs.prepare.outputs.revision }}
