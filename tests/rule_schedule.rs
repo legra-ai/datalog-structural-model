@@ -1,7 +1,8 @@
 //! Tuple partitions of one relation can have different rule strata.
 
 use datalog_structural_model::{
-    Atom, ConstantSymbol, Literal, PredicateSymbol, Program, Rule, Term,
+    AggregateBody, Aggregator, Atom, ConstantSymbol, Literal, PredicateSymbol, Program, Rule, Term,
+    VariableSymbol,
 };
 
 fn atom(value: &str) -> Atom {
@@ -69,4 +70,35 @@ fn empty_program_has_no_scheduled_rules() {
     let schedule = Program::try_new(vec![]).unwrap().stratify().unwrap();
     assert!(schedule.strata.is_empty());
     assert!(schedule.rule_stratum.is_empty());
+}
+
+#[test]
+fn aggregate_waits_for_each_matching_tuple_producer() {
+    let variable = |name| Term::Variable(VariableSymbol::new(name));
+    let tuple = |kind, value| Atom {
+        predicate: PredicateSymbol::new("p"),
+        terms: vec![Term::Constant(ConstantSymbol::new(kind)), value],
+    };
+    let program = Program::try_new(vec![
+        Rule::new(
+            tuple("result", variable("count")),
+            vec![Literal::Aggregate(AggregateBody {
+                result_var: VariableSymbol::new("count"),
+                aggregator: Aggregator::Count,
+                input_var: VariableSymbol::new("value"),
+                group_by: vec![],
+                inner_body: vec![Literal::Positive(tuple("input", variable("value")))],
+            })],
+        ),
+        Rule::positive(
+            tuple("input", Term::Constant(ConstantSymbol::new("a"))),
+            vec![],
+        ),
+        Rule::positive(
+            tuple("input", Term::Constant(ConstantSymbol::new("b"))),
+            vec![],
+        ),
+    ])
+    .unwrap();
+    assert_eq!(program.stratify().unwrap().rule_stratum, vec![1, 0, 0]);
 }
