@@ -14,8 +14,15 @@ fn atom(predicate: &str, terms: Vec<Term>) -> Atom {
     }
 }
 
-fn pred(name: &str) -> PredicateSymbol {
-    PredicateSymbol::new(name)
+fn level(program: &Program, name: &str) -> usize {
+    program
+        .rules
+        .iter()
+        .enumerate()
+        .filter(|(_, rule)| rule.head.predicate.as_str() == name)
+        .map(|(index, _)| program.stratify().unwrap().stratum_of_rule(index).unwrap() + 1)
+        .max()
+        .unwrap_or(0)
 }
 
 #[test]
@@ -40,8 +47,8 @@ fn positive_program_is_single_stratum() {
     let strat = stratify(&program).expect("positive program is stratifiable");
     // parent and ancestor both in stratum 0 (no negation).
     assert_eq!(strat.strata.len(), 1);
-    assert_eq!(strat.stratum_of(&pred("parent")), Some(0));
-    assert_eq!(strat.stratum_of(&pred("ancestor")), Some(0));
+    assert_eq!(level(&program, "parent"), 0);
+    assert_eq!(level(&program, "ancestor"), 1);
 }
 
 #[test]
@@ -56,10 +63,10 @@ fn simple_stratified_negation() {
             ],
         )],
     };
-    let strat = stratify(&program).expect("program is stratified");
+    stratify(&program).expect("program is stratified");
     // married is in stratum 0, bachelor must be in stratum ≥ 1.
-    let married_s = strat.stratum_of(&pred("married")).unwrap();
-    let bachelor_s = strat.stratum_of(&pred("bachelor")).unwrap();
+    let married_s = level(&program, "married");
+    let bachelor_s = level(&program, "bachelor");
     assert!(bachelor_s > married_s);
 }
 
@@ -128,12 +135,12 @@ fn chained_negation_strata() {
             ),
         ],
     };
-    let strat = stratify(&program).expect("stratifiable");
-    let base_s = strat.stratum_of(&pred("base")).unwrap();
-    let excluded_s = strat.stratum_of(&pred("excluded")).unwrap();
-    let more_excluded_s = strat.stratum_of(&pred("more_excluded")).unwrap();
-    let level1_s = strat.stratum_of(&pred("level1")).unwrap();
-    let level2_s = strat.stratum_of(&pred("level2")).unwrap();
+    stratify(&program).expect("stratifiable");
+    let base_s = level(&program, "base");
+    let excluded_s = level(&program, "excluded");
+    let more_excluded_s = level(&program, "more_excluded");
+    let level1_s = level(&program, "level1");
+    let level2_s = level(&program, "level2");
     // Both negated predicates sit in stratum 0 alongside
     // `base`; `level1` must be > `excluded`, and `level2`
     // must be > `more_excluded` *and* ≥ `level1` (positive
@@ -186,9 +193,9 @@ fn quad_shape_rules_stratify_like_predicate_only_when_head_class_is_uniform() {
     };
     let strat = stratify(&program).expect("stratifiable");
     assert_eq!(strat.strata.len(), 1);
-    assert_eq!(strat.stratum_of(&pred("p")), Some(0));
-    assert_eq!(strat.stratum_of(&pred("q")), Some(0));
-    assert_eq!(strat.stratum_of(&pred("r")), Some(0));
+    assert_eq!(level(&program, "p"), 1);
+    assert_eq!(level(&program, "q"), 1);
+    assert_eq!(level(&program, "r"), 0);
 }
 
 #[test]
@@ -221,9 +228,9 @@ fn fixed_graph_producer_and_consumer_share_one_node_per_predicate() {
         ],
     };
     let strat = stratify(&program).expect("stratifiable");
-    let input_s = strat.stratum_of(&pred("input")).unwrap();
-    let inferred_s = strat.stratum_of(&pred("inferred")).unwrap();
-    let downstream_s = strat.stratum_of(&pred("downstream")).unwrap();
+    let input_s = level(&program, "input");
+    let inferred_s = level(&program, "inferred");
+    let downstream_s = level(&program, "downstream");
     assert!(inferred_s >= input_s);
     assert!(downstream_s >= inferred_s);
     // Positive program — no negation, single stratum.
@@ -265,11 +272,11 @@ fn body_atom_with_specific_graph_does_not_depend_on_other_literal_producers() {
             ),
         ],
     };
-    let strat = stratify(&program).expect("stratifiable");
-    let producer_a_s = strat.stratum_of(&pred("producer_a")).unwrap();
-    let producer_b_s = strat.stratum_of(&pred("producer_b")).unwrap();
-    let consumer_s = strat.stratum_of(&pred("consumer")).unwrap();
-    let exclusion_s = strat.stratum_of(&pred("exclusion")).unwrap();
+    stratify(&program).expect("stratifiable");
+    let producer_a_s = level(&program, "producer_a");
+    let producer_b_s = level(&program, "producer_b");
+    let consumer_s = level(&program, "consumer");
+    let exclusion_s = level(&program, "exclusion");
     // producer_b sits above exclusion (negated edge).
     assert!(producer_b_s > exclusion_s);
     // consumer rides on producer_a only — it does NOT inherit

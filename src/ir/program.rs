@@ -33,7 +33,7 @@ impl Program {
     /// 1. **Safety** — every rule must be range-restricted; head variables and
     ///    variables inside negated body literals must also appear in some
     ///    positive body literal.
-    /// 2. **Stratifiability** — the predicate dependency graph must have no
+    /// 2. **Stratifiability** — the compatible-rule dependency graph must have no
     ///    cycle that includes a negation edge (see [`Program::stratify`]).
     ///
     /// # Errors
@@ -123,12 +123,11 @@ impl Program {
 
     /// Compute the program's stratification.
     ///
-    /// Builds the predicate dependency graph (edges from each body
-    /// predicate to the head predicate, tagged with polarity),
-    /// collapses strongly connected components, checks that no SCC
-    /// contains an internal negation edge, and assigns each
-    /// predicate to a stratum such that every negation edge goes
-    /// from a lower stratum to a strictly higher one.
+    /// Connects producers to consumers whose complete tuple patterns can
+    /// unify, collapses strongly connected components, and assigns each rule
+    /// to a stratum. Negative and aggregate dependencies require a strictly
+    /// earlier producer stratum. Pure EDB inputs are available before stratum
+    /// zero. Rule indices refer to this program's rule order.
     ///
     /// # Errors
     ///

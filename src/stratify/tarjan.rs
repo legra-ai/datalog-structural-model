@@ -34,7 +34,7 @@ impl TarjanState {
         self.enter(v);
         // bounded: at most one frame per node in the finite rule program.
         let mut frames = vec![TraversalFrame {
-            node: v.clone(),
+            node: *v,
             next_edge: 0,
         }];
         while let Some(frame) = frames.last_mut() {
@@ -48,12 +48,12 @@ impl TarjanState {
                 if !self.indices.contains_key(target) {
                     self.enter(target);
                     frames.push(TraversalFrame {
-                        node: target.clone(),
+                        node: *target,
                         next_edge: 0,
                     });
                 } else if *self.on_stack.get(target).unwrap_or(&false) {
                     let low = self.lowlink[&frame.node].min(self.indices[target]);
-                    self.lowlink.insert(frame.node.clone(), low);
+                    self.lowlink.insert(frame.node, low);
                 }
                 continue;
             }
@@ -61,17 +61,17 @@ impl TarjanState {
             self.finish(&completed);
             if let Some(parent) = frames.last() {
                 let low = self.lowlink[&parent.node].min(self.lowlink[&completed]);
-                self.lowlink.insert(parent.node.clone(), low);
+                self.lowlink.insert(parent.node, low);
             }
         }
     }
 
     fn enter(&mut self, v: &NodeKey) {
-        self.indices.insert(v.clone(), self.index);
-        self.lowlink.insert(v.clone(), self.index);
+        self.indices.insert(*v, self.index);
+        self.lowlink.insert(*v, self.index);
         self.index += 1;
-        self.stack.push(v.clone());
-        self.on_stack.insert(v.clone(), true);
+        self.stack.push(*v);
+        self.on_stack.insert(*v, true);
     }
 
     fn finish(&mut self, v: &NodeKey) {
@@ -80,7 +80,7 @@ impl TarjanState {
             let mut scc = BTreeSet::new();
             loop {
                 let w = self.stack.pop().expect("stack non-empty at SCC root");
-                self.on_stack.insert(w.clone(), false);
+                self.on_stack.insert(w, false);
                 let is_v = w == *v;
                 scc.insert(w);
                 if is_v {
