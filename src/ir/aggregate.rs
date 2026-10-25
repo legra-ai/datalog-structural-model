@@ -10,7 +10,7 @@
 //! [`Aggregator`] (the SQL/SPARQL aggregator vocabulary) and
 //! [`AggregateBody`] (an aggregation sub-query). The
 //! corresponding body-literal variant is
-//! [`Literal::Aggregate`](super::literal::Literal::Aggregate),
+//! [`Literal::Aggregate`],
 //! and rule-level safety analysis is in
 //! [`Rule::unsafe_aggregate_variables`](super::rule::Rule::unsafe_aggregate_variables).
 //!
@@ -83,14 +83,15 @@ impl Aggregator {
 ///
 /// `inner_body` is its own scope: positive atoms and `BIND`
 /// outputs inside the inner body bind variables that are visible
-/// only within the aggregation. The three sets of variables that
-/// leak out are `group_by`, `input_var`, and (after the
-/// aggregation fires) `result_var`. Concretely:
+/// only within the aggregation. Only `group_by` and the computed
+/// `result_var` are exported to the outer rule. The input value
+/// remains local unless `input_var` is also a grouping key. Concretely:
 ///
 /// - `group_by` and `input_var` MUST be bound by some positive atom or `BIND`
 ///   inside `inner_body`.
-/// - `result_var` MUST be fresh — it must not appear anywhere else in the outer
-///   rule (head or body).
+/// - `result_var` MUST be fresh relative to outer positive-atom variables,
+///   outer `BIND` outputs, and earlier aggregate exports. It may appear in the
+///   head and in literals that consume the aggregate result.
 ///
 /// # Inner-body literal kinds
 ///
@@ -99,7 +100,8 @@ impl Aggregator {
 /// [`Literal::Filter`], and [`Literal::Bind`] — under the usual
 /// safety rules (negated atoms and filter expressions reference
 /// only inner-body-bound variables; `BIND` expressions reference
-/// only earlier inner positives / binds and bind a fresh variable).
+/// inner-positive variables anywhere in the inner body or earlier inner
+/// `BIND` outputs, and bind a fresh variable).
 /// Nested aggregates inside an aggregate's inner body are rejected
 /// at validation time as
 /// [`super::error::ProgramValidationError::NestedAggregateInInnerBody`].
