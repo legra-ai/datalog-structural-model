@@ -55,13 +55,13 @@ impl Rule {
     /// A rule is safe when:
     ///
     /// 1. Every variable appearing in the head is bound by some positive body
-    ///    atom or `Bind`.
+    ///    atom, `Bind`, or aggregate export.
     /// 2. Every variable appearing in a **negative** body literal is bound by
-    ///    some positive body atom or `Bind` (range restriction —
+    ///    some positive body atom, `Bind`, or aggregate export (range restriction —
     ///    negation-as-failure requires the negated atom to be ground by the
     ///    time it is evaluated).
     /// 3. Every variable appearing inside a [`Literal::Filter`] is bound by
-    ///    some positive body atom or `Bind` — filters guard candidate bindings,
+    ///    some positive body atom, `Bind`, or aggregate export — filters guard bindings,
     ///    they do not produce them.
     /// 4. Every variable inside a [`Literal::Bind`] expression is bound by an
     ///    positive body atom, an earlier `Bind`, or an earlier aggregate export,
@@ -132,16 +132,15 @@ impl Rule {
     /// `Bind` is inspected when first encountered:
     ///
     /// * every variable inside `expr` must already be in the bound-set (i.e.
-    ///   produced by an earlier positive atom or `Bind`);
+    ///   produced by any positive atom, an earlier `Bind`, or an earlier aggregate);
     /// * the `Bind`'s output variable must NOT already be in the bound-set —
     ///   `BIND` introduces *fresh* variables.
     ///
     /// Both kinds of failure surface the offending variable for
     /// diagnostics. Positive atoms anywhere in the body
-    /// contribute their variables to the bound-set up front (the
-    /// evaluator joins atoms in order, but positive-atom variables
-    /// are present at the binding-set level regardless of position
-    /// — so this only constrains the `Bind`-related ordering).
+    /// contribute their variables to the bound-set up front. Only
+    /// `Bind` outputs and aggregate exports depend on their producer's
+    /// position in the body.
     #[must_use]
     pub(super) fn unsafe_bind_variables(&self) -> Vec<VariableSymbol> {
         let mut bound = self.positive_atom_variables();
@@ -170,18 +169,17 @@ impl Rule {
     /// 1. `input_var` and every `group_by` key are bound by some inner-body
     ///    positive atom or `BIND` output (the aggregator can only fold values
     ///    that the inner sub-query actually produces).
-    /// 2. `result_var` is fresh — it does not appear in any other body
-    ///    literal's variable set or in the rule's head before this aggregate
-    ///    fires. (A later aggregate's `result_var` may shadow an earlier
-    ///    aggregate's inner-only variable, since inner scopes don't leak.)
+    /// 2. `result_var` is fresh relative to all positive body atoms, all
+    ///    `BIND` outputs, and previous aggregate exports. The head may consume
+    ///    it. Inner-only variables in other aggregates do not prevent freshness.
     /// 3. Inner-body literals satisfy the same per-kind safety rules the outer
     ///    rule body enforces — negative literals and filters reference only
     ///    inner-positive / inner-`BIND` variables; inner `BIND` expressions
-    ///    reference only earlier inner positives / binds and the `BIND` output
-    ///    variable is fresh inside the inner scope.
+    ///    reference any inner-positive variables or earlier inner `BIND` outputs,
+    ///    and the `BIND` output variable is fresh inside the inner scope.
     ///
     /// Nested aggregates are reported separately by
-    /// [`Self::has_nested_aggregate`] and surface as
+    /// [`Self::has_nested_aggregate_in_inner_body`] and surface as
     /// [`super::error::ProgramValidationError::NestedAggregateInInnerBody`].
     #[must_use]
     pub(super) fn unsafe_aggregate_variables(&self) -> Vec<VariableSymbol> {
