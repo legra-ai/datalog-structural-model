@@ -42,9 +42,10 @@ pub enum Literal {
     Filter(BuiltinFilter),
     /// `BIND(expr AS ?var)` — extend the current candidate
     /// binding with a computed value. `var` must be fresh
-    /// (untouched by any earlier positive atom or `Bind`); every
-    /// variable inside `expr` must be bound by an earlier
-    /// positive atom or `Bind`.
+    /// relative to all positive body atoms, earlier `Bind` outputs,
+    /// and earlier aggregate exports. Every variable in `expr` must
+    /// come from a positive body atom anywhere in the body, an earlier
+    /// `Bind`, or an earlier aggregate export.
     Bind {
         /// The fresh variable produced by this bind.
         var: VariableSymbol,
@@ -55,8 +56,8 @@ pub enum Literal {
     /// Aggregation sub-query — fold the inner body into a
     /// per-group aggregate result that the outer body sees as a
     /// freshly-bound variable. See [`AggregateBody`] for the
-    /// scoping and inner-body restrictions; the evaluator wiring
-    /// is a deferred extension follow-up.
+    /// scoping and inner-body restrictions. Execution support is
+    /// declared by each consumer.
     Aggregate(AggregateBody),
 }
 
