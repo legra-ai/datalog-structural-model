@@ -36,7 +36,7 @@ jobs:
           private-key: ${{ secrets.RELEASE_WRITER_APP_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
-      - uses: legra-ai/github-actions/.github/actions/prepare-cargo-release@586689276e02ded2be5b9dfffbed070a8a9ba50b
+      - uses: legra-ai/github-actions/.github/actions/prepare-cargo-release@7188f5c63b8dc3512d9a88f3c02f7249ce2e3e5f
         id: release
         with:
           # Non-main preparation is read-only. A missing writer token on main
@@ -104,11 +104,11 @@ jobs:
         with:
           toolchain: 1.99.1
           rustflags: -D warnings
-      - uses: legra-ai/github-actions/.github/actions/tag-tested-release@586689276e02ded2be5b9dfffbed070a8a9ba50b
+      - uses: legra-ai/github-actions/.github/actions/tag-tested-release@7188f5c63b8dc3512d9a88f3c02f7249ce2e3e5f
         with:
           version: ${{ needs.prepare.outputs.version }}
           revision: ${{ needs.prepare.outputs.revision }}
-      - uses: legra-ai/github-actions/.github/actions/generate-changelog@586689276e02ded2be5b9dfffbed070a8a9ba50b
+      - uses: legra-ai/github-actions/.github/actions/generate-changelog@7188f5c63b8dc3512d9a88f3c02f7249ce2e3e5f
         with:
           revision: ${{ needs.prepare.outputs.revision }}
           output-file: CHANGELOG_RELEASE.md
@@ -118,7 +118,7 @@ jobs:
           target_commitish: ${{ needs.prepare.outputs.revision }}
           body_path: CHANGELOG_RELEASE.md
           draft: true
-      - uses: legra-ai/github-actions/.github/actions/publish-tested-crate@586689276e02ded2be5b9dfffbed070a8a9ba50b
+      - uses: legra-ai/github-actions/.github/actions/publish-tested-crate@7188f5c63b8dc3512d9a88f3c02f7249ce2e3e5f
         with:
           crate: datalog-structural-model
           version: ${{ needs.prepare.outputs.version }}
