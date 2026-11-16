@@ -8,13 +8,20 @@ use super::symbols::{ConstantSymbol, VariableSymbol};
 /// Datalog term (`variable`, `constant`, `quoted-triple term`,
 /// or `SKOLEM(name, args...)` function call).
 ///
-/// The `TripleTerm` variant lets rules name quoted-triple
-/// arguments per RDF 1.2 / RDF-star, encoded as a 2-arity
-/// [`Atom`] whose predicate is the triple's predicate IRI and
-/// whose `terms` slot holds `[subject, object]`. Nesting is
-/// bounded by [`MAX_TRIPLE_TERM_NESTING`] to keep unification
-/// cost finite — programs that exceed the limit are rejected at
-/// [`Program::validate`](super::program::Program::validate) time.
+/// The `TripleTerm` variant wraps a structured [`Atom`]. An adapter owns
+/// the interpretation of that atom's relation symbol and ordered operands.
+/// A two-operand encoding can put a fixed RDF predicate IRI in `predicate`
+/// and `[subject, object]` in `terms`. For a variable RDF predicate, an
+/// adapter can instead use a fixed triple relation with three operands
+/// `[subject, predicate, object]`. The RDF reasoning catalogue uses
+/// `urn:rdf-reasoning:triple` for this three-slot convention, recursively.
+/// Its relation symbol is distinct from the RDF predicate operand.
+///
+/// These encodings are structurally distinct; this model neither converts
+/// between them nor validates RDF term domains or blank-node scope. Display
+/// text is not a canonical identity or serialization. Nesting is bounded by
+/// [`MAX_TRIPLE_TERM_NESTING`]; programs exceeding it are rejected by
+/// [`Program::validate`](super::program::Program::validate).
 ///
 /// The `Skolem` variant (extension) is a deterministic fresh-IRI
 /// minting operator: given a label and a tuple of argument terms,

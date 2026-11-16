@@ -122,6 +122,21 @@ syntaxes. Callers own decoding resource budgets; this crate owns structural and
 program-safety validation. The supported triple-term nesting depth remains
 `MAX_TRIPLE_TERM_NESTING`.
 
+## Triple-term adapter conventions
+
+`Term::TripleTerm` contains a generic structured `Atom`. The RDF reasoning
+catalogue's convention uses a fixed `urn:rdf-reasoning:triple` relation with
+three ordered operands `[subject, predicate, object]`, recursively. The RDF
+predicate can be a bound variable because it is an operand, distinct from the
+fixed Datalog relation symbol. A two-operand atom with its RDF predicate in the
+relation symbol is a different structure; the model does not translate it.
+
+Checked construction and nested JSON/Postcard preserve all three operands and
+reject unbound variables, including a nested predicate variable. Programs need
+the explicit `TripleTerms` capability. These checks do not implement term
+construction or unification, validate RDF term domains/scope, or certify an
+entailment regime. Adapters own those contracts. Display text is not identity.
+
 ## Explicit Datalog language profiles
 
 `DatalogProfile::positive()` describes positive flat Datalog without extension
