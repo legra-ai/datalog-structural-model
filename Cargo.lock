@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "async-fs-io"
-version = "0.2.5"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d2e5792ff14a3bd92125c08a3d61143a6851105961eca08b420b69cd298a001"
+checksum = "22ee86df5f69a9f166546661d3c4faf4ca68e12959a51c068761c65a4812ce38"
 dependencies = [
  "fs2",
  "thiserror",
@@ -182,9 +182,9 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
 name = "rhusky"
-version = "2.0.7"
+version = "2.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47099baa15e5120f2087d18a187ec63ec9886c52151c9829a8e6bdfdd85e5de2"
+checksum = "37a3345846735283e542b11bb17c8fd359643a09e806993b4e7494fed323c256"
 dependencies = [
  "async-fs-io",
  "tokio",
