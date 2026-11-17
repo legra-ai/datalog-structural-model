@@ -1,8 +1,10 @@
 //! Rule stratification entry point.
 
+use super::cycle::{StrictDependency, UnstratifiableCycle};
 use super::graph::DependencyGraph;
 use super::types::{Stratification, StratificationError, Stratum};
 use crate::ir::Program;
+use crate::position::RuleIndex;
 
 pub(crate) fn stratify(program: &Program) -> Result<Stratification, StratificationError> {
     let graph = DependencyGraph::build(program);
@@ -16,14 +18,28 @@ pub(crate) fn stratify(program: &Program) -> Result<Stratification, Stratificati
     }
     for (&source, edges) in &graph.edges {
         for edge in edges {
-            if edge.negated && scc_of[source] == scc_of[edge.target] {
-                let mut predicates: Vec<_> = sccs[scc_of[source]]
+            if let Some(kind) = edge.strict
+                && scc_of[source] == scc_of[edge.target]
+            {
+                let component = &sccs[scc_of[source]];
+                let mut predicates: Vec<_> = component
                     .iter()
                     .map(|&index| program.rules[index].head.predicate.clone())
                     .collect();
                 predicates.sort();
                 predicates.dedup();
-                return Err(StratificationError::UnstratifiableCycle { predicates });
+                return Err(StratificationError::UnstratifiableCycle(
+                    UnstratifiableCycle {
+                        rules: component.iter().copied().map(RuleIndex::new).collect(),
+                        predicates,
+                        edge: StrictDependency {
+                            producer: RuleIndex::new(source),
+                            consumer: RuleIndex::new(edge.target),
+                            literal: edge.literal.clone(),
+                            kind,
+                        },
+                    },
+                ));
             }
         }
     }
@@ -36,7 +52,7 @@ pub(crate) fn stratify(program: &Program) -> Result<Stratification, Stratificati
                 let target = scc_of[edge.target];
                 if target != index {
                     component_stratum[target] = component_stratum[target]
-                        .max(component_stratum[index] + usize::from(edge.negated));
+                        .max(component_stratum[index] + usize::from(edge.is_strict()));
                 }
             }
         }
@@ -51,7 +67,7 @@ pub(crate) fn stratify(program: &Program) -> Result<Stratification, Stratificati
         let stratum = component_stratum[component];
         for &rule in rules {
             rule_stratum[rule] = stratum;
-            strata[stratum].rules.insert(rule);
+            strata[stratum].rules.insert(RuleIndex::new(rule));
         }
     }
     Ok(Stratification {

@@ -4,7 +4,8 @@
 use super::equality_mode::EqualityMode;
 use super::error::ProgramValidationError;
 use super::literal::Literal;
-use super::rule::Rule;
+use super::rule::{LiteralFault, Rule};
+use crate::position::{LiteralIndex, LiteralPath, RuleIndex};
 use crate::stratify::{Stratification, stratify};
 
 /// Datalog program as an ordered set of rules.
@@ -42,7 +43,7 @@ impl Program {
     /// failure, [`ProgramValidationError::UnsafeNegation`] when a
     /// negated body literal references a variable that no positive
     /// literal binds, or
-    /// [`ProgramValidationError::UnstratifiableNegation`] when the
+    /// [`ProgramValidationError::UnstratifiableCycle`] when the
     /// program contains a recursive cycle through negation.
     pub fn validate(&self) -> Result<(), ProgramValidationError> {
         self.validate_with_equality_mode(EqualityMode::Default)
@@ -73,47 +74,7 @@ impl Program {
             check_equality_mode_compatibility(&self.rules)?;
         }
         for (index, rule) in self.rules.iter().enumerate() {
-            rule.validate_term_shapes(index)?;
-            let unsafe_head = rule.unsafe_head_variables();
-            if !unsafe_head.is_empty() {
-                return Err(ProgramValidationError::UnsafeRule {
-                    rule_index: index,
-                    variables: unsafe_head,
-                });
-            }
-            let unsafe_neg = rule.unsafe_negative_variables();
-            if !unsafe_neg.is_empty() {
-                return Err(ProgramValidationError::UnsafeNegation {
-                    rule_index: index,
-                    variables: unsafe_neg,
-                });
-            }
-            let unsafe_filter = rule.unsafe_filter_variables();
-            if !unsafe_filter.is_empty() {
-                return Err(ProgramValidationError::UnsafeFilter {
-                    rule_index: index,
-                    variables: unsafe_filter,
-                });
-            }
-            let unsafe_bind = rule.unsafe_bind_variables();
-            if !unsafe_bind.is_empty() {
-                return Err(ProgramValidationError::UnsafeBind {
-                    rule_index: index,
-                    variables: unsafe_bind,
-                });
-            }
-            if rule.has_nested_aggregate_in_inner_body() {
-                return Err(ProgramValidationError::NestedAggregateInInnerBody {
-                    rule_index: index,
-                });
-            }
-            let unsafe_aggregate = rule.unsafe_aggregate_variables();
-            if !unsafe_aggregate.is_empty() {
-                return Err(ProgramValidationError::UnsafeAggregate {
-                    rule_index: index,
-                    variables: unsafe_aggregate,
-                });
-            }
+            rule.validate(RuleIndex::new(index))?;
         }
         // Stratification check — reject programs with recursion
         // through negation.
@@ -131,7 +92,7 @@ impl Program {
     ///
     /// # Errors
     ///
-    /// Returns [`ProgramValidationError::UnstratifiableNegation`]
+    /// Returns [`ProgramValidationError::UnstratifiableCycle`]
     /// when a cycle in the dependency graph contains a negation
     /// edge.
     pub fn stratify(&self) -> Result<Stratification, ProgramValidationError> {
@@ -139,23 +100,24 @@ impl Program {
     }
 }
 
-/// extension — reject negation / aggregation under
-/// [`EqualityMode::SameAs`]. Walks each rule's body and surfaces
-/// the first offending literal as
-/// [`ProgramValidationError::NegationUnderEqualityMode`] or
-/// [`ProgramValidationError::AggregationUnderEqualityMode`].
+/// Reject negation and aggregation under [`EqualityMode::SameAs`], naming
+/// the first offending top-level body literal.
 fn check_equality_mode_compatibility(rules: &[Rule]) -> Result<(), ProgramValidationError> {
     for (index, rule) in rules.iter().enumerate() {
-        for lit in &rule.body {
+        let rule_index = RuleIndex::new(index);
+        for (position, lit) in rule.body.iter().enumerate() {
+            let literal = LiteralPath::top(LiteralIndex::new(position));
             match lit {
                 Literal::Negative(_) => {
                     return Err(ProgramValidationError::NegationUnderEqualityMode {
-                        rule_index: index,
+                        rule: rule_index,
+                        literal,
                     });
                 }
                 Literal::Aggregate(_) => {
                     return Err(ProgramValidationError::AggregationUnderEqualityMode {
-                        rule_index: index,
+                        rule: rule_index,
+                        literal,
                     });
                 }
                 Literal::Positive(_) | Literal::Filter(_) | Literal::Bind { .. } => {}
@@ -163,4 +125,47 @@ fn check_equality_mode_compatibility(rules: &[Rule]) -> Result<(), ProgramValida
         }
     }
     Ok(())
+}
+
+impl Rule {
+    /// Per-rule shape and safety checks, in reporting order.
+    fn validate(&self, rule: RuleIndex) -> Result<(), ProgramValidationError> {
+        self.validate_term_shapes(rule)?;
+        let variables = self.unsafe_head_variables();
+        if !variables.is_empty() {
+            return Err(ProgramValidationError::UnsafeRule { rule, variables });
+        }
+        if let Some(LiteralFault { literal, variables }) = self.unsafe_negative_variables() {
+            return Err(ProgramValidationError::UnsafeNegation {
+                rule,
+                literal,
+                variables,
+            });
+        }
+        if let Some(LiteralFault { literal, variables }) = self.unsafe_filter_variables() {
+            return Err(ProgramValidationError::UnsafeFilter {
+                rule,
+                literal,
+                variables,
+            });
+        }
+        if let Some(LiteralFault { literal, variables }) = self.unsafe_bind_variables() {
+            return Err(ProgramValidationError::UnsafeBind {
+                rule,
+                literal,
+                variables,
+            });
+        }
+        if let Some(literal) = self.nested_aggregate_in_inner_body() {
+            return Err(ProgramValidationError::NestedAggregateInInnerBody { rule, literal });
+        }
+        if let Some(LiteralFault { literal, variables }) = self.unsafe_aggregate_variables() {
+            return Err(ProgramValidationError::UnsafeAggregate {
+                rule,
+                literal,
+                variables,
+            });
+        }
+        Ok(())
+    }
 }

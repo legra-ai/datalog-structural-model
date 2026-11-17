@@ -1,0 +1,47 @@
+{
+  "rules": [
+    {
+      "head": {
+        "predicate": "payroll",
+        "terms": [
+          {
+            "Variable": "dept"
+          },
+          {
+            "Variable": "total"
+          }
+        ]
+      },
+      "body": [
+        {
+          "Aggregate": {
+            "result_var": "total",
+            "aggregator": "Sum",
+            "input_var": "sal",
+            "group_by": [
+              "dept"
+            ],
+            "inner_body": [
+              {
+                "Positive": {
+                  "predicate": "salary",
+                  "terms": [
+                    {
+                      "Variable": "e"
+                    },
+                    {
+                      "Variable": "dept"
+                    },
+                    {
+                      "Variable": "sal"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

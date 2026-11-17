@@ -1,7 +1,7 @@
 //! Rule scheduling checked against finite ground-pattern intersections.
 
 use datalog_structural_model::{
-    Atom, ConstantSymbol, Literal, PredicateSymbol, Program, Rule, Term, VariableSymbol,
+    Atom, ConstantSymbol, Literal, PredicateSymbol, Program, Rule, RuleIndex, Term, VariableSymbol,
 };
 use std::collections::BTreeSet;
 
@@ -33,7 +33,11 @@ fn has_dependency(head: Vec<Term>, body: Vec<Term>) -> bool {
     };
     // Unbound heads are intentional: stratify analyzes patterns independently
     // of the range-safety validation exercised by Program::try_new tests.
-    program.stratify().unwrap().stratum_of_rule(1) == Some(1)
+    program
+        .stratify()
+        .unwrap()
+        .stratum_of_rule(RuleIndex::new(1))
+        == Some(1)
 }
 
 fn flat_extension(pattern: &[Term]) -> BTreeSet<Vec<&'static str>> {

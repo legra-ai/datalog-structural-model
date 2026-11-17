@@ -1,0 +1,73 @@
+{
+  "rules": [
+    {
+      "head": {
+        "predicate": "ancestor",
+        "terms": [
+          {
+            "Variable": "x"
+          },
+          {
+            "Variable": "y"
+          }
+        ]
+      },
+      "body": [
+        {
+          "Positive": {
+            "predicate": "parent",
+            "terms": [
+              {
+                "Variable": "x"
+              },
+              {
+                "Variable": "y"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "head": {
+        "predicate": "ancestor",
+        "terms": [
+          {
+            "Variable": "x"
+          },
+          {
+            "Variable": "z"
+          }
+        ]
+      },
+      "body": [
+        {
+          "Positive": {
+            "predicate": "parent",
+            "terms": [
+              {
+                "Variable": "x"
+              },
+              {
+                "Variable": "y"
+              }
+            ]
+          }
+        },
+        {
+          "Positive": {
+            "predicate": "ancestor",
+            "terms": [
+              {
+                "Variable": "y"
+              },
+              {
+                "Variable": "z"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

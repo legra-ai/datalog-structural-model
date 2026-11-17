@@ -1,8 +1,8 @@
 //! Aggregate results must be fresh relative to prior exported variables.
 
 use datalog_structural_model::{
-    AggregateBody, Aggregator, Atom, Literal, PredicateSymbol, Program, ProgramValidationError,
-    Rule, Term, VariableSymbol,
+    AggregateBody, Aggregator, Atom, Literal, LiteralIndex, LiteralPath, PredicateSymbol, Program,
+    ProgramValidationError, Rule, RuleIndex, Term, VariableSymbol,
 };
 
 fn variable(name: &str) -> VariableSymbol {
@@ -44,7 +44,8 @@ fn aggregate_result_cannot_overwrite_a_prior_grouping_export() {
     assert_eq!(
         program.validate(),
         Err(ProgramValidationError::UnsafeAggregate {
-            rule_index: 0,
+            rule: RuleIndex::new(0),
+            literal: LiteralPath::top(LiteralIndex::new(1)),
             variables: vec![variable("group")],
         })
     );

@@ -1,8 +1,8 @@
 //! Aggregate exports participate in subsequent BIND safety checks.
 
 use datalog_structural_model::{
-    AggregateBody, Aggregator, Atom, BindExpr, Literal, PredicateSymbol, Program,
-    ProgramValidationError, Rule, Term, VariableSymbol,
+    AggregateBody, Aggregator, Atom, BindExpr, Literal, LiteralIndex, LiteralPath, PredicateSymbol,
+    Program, ProgramValidationError, Rule, RuleIndex, Term, VariableSymbol,
 };
 
 fn variable(name: &str) -> VariableSymbol {
@@ -62,14 +62,15 @@ fn aggregate_then_bind_survives_checked_loading() {
 
 #[test]
 fn bind_cannot_consume_future_aggregate_exports_or_inner_only_variables() {
-    for (body, unbound) in [
-        (vec![bind("copy", "total"), aggregate()], "total"),
-        (vec![aggregate(), bind("copy", "value")], "value"),
+    for (body, unbound, position) in [
+        (vec![bind("copy", "total"), aggregate()], "total", 0),
+        (vec![aggregate(), bind("copy", "value")], "value", 1),
     ] {
         assert_eq!(
             program(body).validate(),
             Err(ProgramValidationError::UnsafeBind {
-                rule_index: 0,
+                rule: RuleIndex::new(0),
+                literal: LiteralPath::top(LiteralIndex::new(position)),
                 variables: vec![variable(unbound)],
             })
         );
@@ -86,7 +87,8 @@ fn bind_cannot_overwrite_an_exported_grouping_variable() {
         ])
         .validate(),
         Err(ProgramValidationError::UnsafeBind {
-            rule_index: 0,
+            rule: RuleIndex::new(0),
+            literal: LiteralPath::top(LiteralIndex::new(1)),
             variables: vec![variable("group")],
         })
     );

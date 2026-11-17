@@ -1,0 +1,56 @@
+{
+  "rules": [
+    {
+      "head": {
+        "predicate": "label",
+        "terms": [
+          {
+            "Variable": "p"
+          },
+          {
+            "Variable": "upper"
+          }
+        ]
+      },
+      "body": [
+        {
+          "Positive": {
+            "predicate": "name",
+            "terms": [
+              {
+                "Variable": "p"
+              },
+              {
+                "Variable": "n"
+              }
+            ]
+          }
+        },
+        {
+          "Filter": {
+            "Ne": [
+              {
+                "Variable": "n"
+              },
+              {
+                "Constant": ""
+              }
+            ]
+          }
+        },
+        {
+          "Bind": {
+            "var": "upper",
+            "expr": {
+              "UCase": {
+                "Term": {
+                  "Variable": "n"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

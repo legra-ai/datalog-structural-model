@@ -3,6 +3,7 @@ use super::{Atom, BindExpr, BuiltinFilter, Literal, Rule, Term};
 
 pub(crate) trait Visitor {
     fn term(&mut self, _term: &Term) {}
+    fn leave_term(&mut self, _term: &Term) {}
     fn binding(&mut self, _expr: &BindExpr) {}
     fn filter(&mut self, _filter: &BuiltinFilter) {}
     fn literal(&mut self, _literal: &Literal) {}
@@ -34,6 +35,7 @@ impl Term {
                 }
             }
         }
+        visitor.leave_term(self);
     }
 }
 impl Literal {

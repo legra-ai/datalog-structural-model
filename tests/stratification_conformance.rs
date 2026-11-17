@@ -1,7 +1,7 @@
 //! Exhaustive small graphs compared with an independent constraint solver.
 
 use datalog_structural_model::{
-    Atom, ConstantSymbol, Literal, PredicateSymbol, Program, Rule, Term,
+    Atom, ConstantSymbol, Literal, PredicateSymbol, Program, Rule, RuleIndex, Term,
 };
 
 const PREDICATES: [&str; 3] = ["p", "q", "r"];
@@ -125,7 +125,7 @@ fn every_three_predicate_signed_graph_matches_the_reference() {
                                 expected[source] + usize::from(*edge == 2)
                             };
                             assert_eq!(
-                                actual.stratum_of_rule(rule_index),
+                                actual.stratum_of_rule(RuleIndex::new(rule_index)),
                                 Some(level),
                                 "graph {index}, tuples={with_contexts}, rule={rule_index}"
                             );

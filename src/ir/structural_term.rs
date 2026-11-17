@@ -1,5 +1,6 @@
 //! Context-free term invariants shared by constructors and checked decoding.
 use super::{Atom, ConstantSymbol, GroundAtom, GroundTerm, MAX_TRIPLE_TERM_NESTING, Term};
+use crate::error_code::ErrorCode;
 use std::{error::Error, fmt};
 
 /// Invalid term structure, independent of variable binding or rule position.
@@ -29,6 +30,21 @@ impl fmt::Display for TermShapeError {
     }
 }
 impl Error for TermShapeError {}
+impl TermShapeError {
+    /// Code of [`Self::TripleTermNestingExceeded`].
+    pub const CODE_TRIPLE_TERM_NESTING_EXCEEDED: ErrorCode =
+        ErrorCode::new("triple-term-nesting-exceeded");
+    /// Code of [`Self::InvalidSkolemArguments`].
+    pub const CODE_INVALID_SKOLEM_ARGUMENTS: ErrorCode = ErrorCode::new("invalid-skolem-arguments");
+    /// Stable kebab-case code of this variant.
+    #[must_use]
+    pub fn code(&self) -> ErrorCode {
+        match self {
+            Self::TripleTermNestingExceeded { .. } => Self::CODE_TRIPLE_TERM_NESTING_EXCEEDED,
+            Self::InvalidSkolemArguments => Self::CODE_INVALID_SKOLEM_ARGUMENTS,
+        }
+    }
+}
 impl Term {
     /// Construct a structured term with checked nesting and Skolem arguments.
     /// # Errors
