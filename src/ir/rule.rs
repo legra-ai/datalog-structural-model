@@ -7,6 +7,27 @@ use super::aggregate::AggregateBody;
 use super::atom::Atom;
 use super::literal::Literal;
 use super::symbols::VariableSymbol;
+use crate::position::{LiteralIndex, LiteralPath};
+
+/// A body literal and the variables that make it unsafe.
+pub(super) struct LiteralFault {
+    pub(super) literal: LiteralPath,
+    pub(super) variables: Vec<VariableSymbol>,
+}
+
+impl LiteralFault {
+    fn new(literal: LiteralPath, variables: Vec<VariableSymbol>) -> Self {
+        Self { literal, variables }
+    }
+}
+
+/// Sorted variables of `vars` missing from `bound`.
+fn unbound(
+    vars: BTreeSet<VariableSymbol>,
+    bound: &BTreeSet<VariableSymbol>,
+) -> Vec<VariableSymbol> {
+    vars.into_iter().filter(|v| !bound.contains(v)).collect()
+}
 
 /// Datalog rule: `head :- body_1, ..., body_n`.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -68,16 +89,11 @@ impl Rule {
     ///    and the `Bind`'s output variable is fresh in that bound set.
     #[must_use]
     pub fn is_safe(&self) -> bool {
-        let unsafe_head = self.unsafe_head_variables();
-        let unsafe_neg = self.unsafe_negative_variables();
-        let unsafe_filter = self.unsafe_filter_variables();
-        let unsafe_bind = self.unsafe_bind_variables();
-        let unsafe_aggregate = self.unsafe_aggregate_variables();
-        unsafe_head.is_empty()
-            && unsafe_neg.is_empty()
-            && unsafe_filter.is_empty()
-            && unsafe_bind.is_empty()
-            && unsafe_aggregate.is_empty()
+        self.unsafe_head_variables().is_empty()
+            && self.unsafe_negative_variables().is_none()
+            && self.unsafe_filter_variables().is_none()
+            && self.unsafe_bind_variables().is_none()
+            && self.unsafe_aggregate_variables().is_none()
     }
 
     #[must_use]
@@ -87,114 +103,85 @@ impl Rule {
         head_vars.difference(&bound).cloned().collect()
     }
 
+    /// First negative body literal with variables no positive literal binds.
     #[must_use]
-    pub(super) fn unsafe_negative_variables(&self) -> Vec<VariableSymbol> {
+    pub(super) fn unsafe_negative_variables(&self) -> Option<LiteralFault> {
         let bound = self.bound_body_variables();
-        self.body
-            .iter()
-            .filter_map(|lit| match lit {
-                Literal::Negative(atom) => Some(atom),
-                Literal::Positive(_)
-                | Literal::Filter(_)
-                | Literal::Bind { .. }
-                | Literal::Aggregate(_) => None,
-            })
-            .flat_map(Atom::variables)
-            .filter(|v| !bound.contains(v))
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect()
+        self.first_literal_fault(|lit| match lit {
+            Literal::Negative(atom) => unbound(atom.variables(), &bound),
+            Literal::Positive(_)
+            | Literal::Filter(_)
+            | Literal::Bind { .. }
+            | Literal::Aggregate(_) => Vec::new(),
+        })
     }
 
+    /// First filter literal with variables no positive literal binds.
     #[must_use]
-    pub(super) fn unsafe_filter_variables(&self) -> Vec<VariableSymbol> {
+    pub(super) fn unsafe_filter_variables(&self) -> Option<LiteralFault> {
         let bound = self.bound_body_variables();
-        self.body
-            .iter()
-            .filter_map(|lit| match lit {
-                Literal::Filter(filter) => Some(filter.variables()),
-                Literal::Positive(_)
-                | Literal::Negative(_)
-                | Literal::Bind { .. }
-                | Literal::Aggregate(_) => None,
-            })
-            .flatten()
-            .filter(|v| !bound.contains(v))
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect()
+        self.first_literal_fault(|lit| match lit {
+            Literal::Filter(filter) => unbound(filter.variables(), &bound),
+            Literal::Positive(_)
+            | Literal::Negative(_)
+            | Literal::Bind { .. }
+            | Literal::Aggregate(_) => Vec::new(),
+        })
     }
 
     /// Position-aware safety check for `BIND(expr AS ?var)`.
     ///
-    /// Walks the body in order, building up the set of variables
-    /// bound by every positive atom, prior `Bind`, and prior aggregate export. Each
-    /// `Bind` is inspected when first encountered:
-    ///
-    /// * every variable inside `expr` must already be in the bound-set (i.e.
-    ///   produced by any positive atom, an earlier `Bind`, or an earlier aggregate);
-    /// * the `Bind`'s output variable must NOT already be in the bound-set —
-    ///   `BIND` introduces *fresh* variables.
-    ///
-    /// Both kinds of failure surface the offending variable for
-    /// diagnostics. Positive atoms anywhere in the body
-    /// contribute their variables to the bound-set up front. Only
-    /// `Bind` outputs and aggregate exports depend on their producer's
-    /// position in the body.
+    /// Walks the body in order, building up the set of variables bound by
+    /// every positive atom, prior `Bind`, and prior aggregate export. Every
+    /// variable inside `expr` must already be bound and the output variable
+    /// must be fresh. Reports the first offending `Bind`.
     #[must_use]
-    pub(super) fn unsafe_bind_variables(&self) -> Vec<VariableSymbol> {
+    pub(super) fn unsafe_bind_variables(&self) -> Option<LiteralFault> {
         let mut bound = self.positive_atom_variables();
-        let mut errors: BTreeSet<VariableSymbol> = BTreeSet::new();
-        for lit in &self.body {
-            if let Literal::Aggregate(aggregate) = lit {
+        self.first_literal_fault(|lit| match lit {
+            Literal::Aggregate(aggregate) => {
                 bound.extend(aggregate.exported_variables());
-                continue;
+                Vec::new()
             }
-            let Literal::Bind { var, expr } = lit else {
-                continue;
-            };
-            errors.extend(expr.variables().into_iter().filter(|v| !bound.contains(v)));
-            if bound.contains(var) {
-                errors.insert(var.clone());
+            Literal::Bind { var, expr } => {
+                let mut errors: BTreeSet<VariableSymbol> = expr
+                    .variables()
+                    .into_iter()
+                    .filter(|v| !bound.contains(v))
+                    .collect();
+                if !bound.insert(var.clone()) {
+                    errors.insert(var.clone());
+                }
+                errors.into_iter().collect()
             }
-            bound.insert(var.clone());
-        }
-        errors.into_iter().collect()
+            Literal::Positive(_) | Literal::Negative(_) | Literal::Filter(_) => Vec::new(),
+        })
     }
 
-    /// Safety check for [`Literal::Aggregate`].
+    /// Safety check for [`Literal::Aggregate`]; reports the first offending
+    /// aggregate.
     ///
-    /// Each aggregate body literal must satisfy:
-    ///
-    /// 1. `input_var` and every `group_by` key are bound by some inner-body
-    ///    positive atom or `BIND` output (the aggregator can only fold values
-    ///    that the inner sub-query actually produces).
-    /// 2. `result_var` is fresh relative to all positive body atoms, all
-    ///    `BIND` outputs, and previous aggregate exports. The head may consume
-    ///    it. Inner-only variables in other aggregates do not prevent freshness.
-    /// 3. Inner-body literals satisfy the same per-kind safety rules the outer
-    ///    rule body enforces — negative literals and filters reference only
-    ///    inner-positive / inner-`BIND` variables; inner `BIND` expressions
-    ///    reference any inner-positive variables or earlier inner `BIND` outputs,
-    ///    and the `BIND` output variable is fresh inside the inner scope.
+    /// 1. `input_var` and every `group_by` key are bound by the inner body.
+    /// 2. `result_var` is fresh relative to positive body atoms, `BIND`
+    ///    outputs, and previous aggregate exports.
+    /// 3. Inner-body literals satisfy the outer per-kind safety rules.
     ///
     /// Nested aggregates are reported separately by
-    /// [`Self::has_nested_aggregate_in_inner_body`] and surface as
-    /// [`super::error::ProgramValidationError::NestedAggregateInInnerBody`].
+    /// [`Self::nested_aggregate_in_inner_body`].
     #[must_use]
-    pub(super) fn unsafe_aggregate_variables(&self) -> Vec<VariableSymbol> {
+    pub(super) fn unsafe_aggregate_variables(&self) -> Option<LiteralFault> {
         let mut already_bound = self.positive_atom_variables();
         for lit in &self.body {
             if let Literal::Bind { var, .. } = lit {
                 already_bound.insert(var.clone());
             }
         }
-        let mut errors: BTreeSet<VariableSymbol> = BTreeSet::new();
-        for lit in &self.body {
+        self.first_literal_fault(|lit| {
             let Literal::Aggregate(agg) = lit else {
-                continue;
+                return Vec::new();
             };
             let inner_bound = agg.inner_bound_variables();
+            let mut errors: BTreeSet<VariableSymbol> = BTreeSet::new();
             if !inner_bound.contains(&agg.input_var) {
                 errors.insert(agg.input_var.clone());
             }
@@ -210,19 +197,36 @@ impl Rule {
             // Both the result and grouping keys are visible to subsequent
             // body literals; inner-only variables remain scoped inside.
             already_bound.extend(agg.exported_variables());
-        }
-        errors.into_iter().collect()
+            errors.into_iter().collect()
+        })
     }
 
-    /// Returns `true` when any aggregate body literal's `inner_body`
-    /// contains a nested [`Literal::Aggregate`]. Reported by
-    /// [`super::program::Program::validate`] as
-    /// [`super::error::ProgramValidationError::NestedAggregateInInnerBody`].
+    /// Path to the first aggregate nested inside an aggregate's inner body.
     #[must_use]
-    pub(super) fn has_nested_aggregate_in_inner_body(&self) -> bool {
-        self.body.iter().any(|lit| match lit {
-            Literal::Aggregate(agg) => agg.contains_nested_aggregate(),
-            _ => false,
+    pub(super) fn nested_aggregate_in_inner_body(&self) -> Option<LiteralPath> {
+        self.body.iter().enumerate().find_map(|(outer, lit)| {
+            let Literal::Aggregate(agg) = lit else {
+                return None;
+            };
+            agg.inner_body
+                .iter()
+                .position(Literal::is_aggregate)
+                .map(|inner| {
+                    LiteralPath::top(LiteralIndex::new(outer)).inner(LiteralIndex::new(inner))
+                })
+        })
+    }
+
+    /// First top-level body literal for which `check` reports variables.
+    /// `check` sees every literal in order, so it may carry scope state.
+    fn first_literal_fault(
+        &self,
+        mut check: impl FnMut(&Literal) -> Vec<VariableSymbol>,
+    ) -> Option<LiteralFault> {
+        self.body.iter().enumerate().find_map(|(index, lit)| {
+            let variables = check(lit);
+            (!variables.is_empty())
+                .then(|| LiteralFault::new(LiteralPath::top(LiteralIndex::new(index)), variables))
         })
     }
 

@@ -1,7 +1,11 @@
 //! Public rule scheduling result types and errors.
 
-use crate::ir::PredicateSymbol;
 use std::collections::BTreeSet;
+use std::{error::Error, fmt};
+
+use super::cycle::UnstratifiableCycle;
+use crate::error_code::ErrorCode;
+use crate::position::RuleIndex;
 
 /// Rule-level stratification of a finite Datalog program.
 ///
@@ -20,8 +24,8 @@ pub struct Stratification {
 impl Stratification {
     /// Return the stratum of a rule, or `None` for an out-of-range rule index.
     #[must_use]
-    pub fn stratum_of_rule(&self, rule_index: usize) -> Option<usize> {
-        self.rule_stratum.get(rule_index).copied()
+    pub fn stratum_of_rule(&self, rule: RuleIndex) -> Option<usize> {
+        self.rule_stratum.get(rule.get()).copied()
     }
 }
 
@@ -30,7 +34,7 @@ impl Stratification {
 #[serde(deny_unknown_fields)]
 pub struct Stratum {
     /// Indices into the analyzed program's rule list.
-    pub rules: BTreeSet<usize>,
+    pub rules: BTreeSet<RuleIndex>,
 }
 
 /// Stratification failure.
@@ -38,8 +42,28 @@ pub struct Stratum {
 #[serde(deny_unknown_fields)]
 pub enum StratificationError {
     /// A cycle of compatible rule dependencies contains negation or aggregation.
-    UnstratifiableCycle {
-        /// Predicates of the rules in the offending component, sorted and unique.
-        predicates: Vec<PredicateSymbol>,
-    },
+    UnstratifiableCycle(UnstratifiableCycle),
 }
+
+impl StratificationError {
+    /// Code of [`Self::UnstratifiableCycle`].
+    pub const CODE_UNSTRATIFIABLE_CYCLE: ErrorCode = ErrorCode::new("unstratifiable-cycle");
+
+    /// Stable kebab-case code of this variant.
+    #[must_use]
+    pub fn code(&self) -> ErrorCode {
+        match self {
+            Self::UnstratifiableCycle(_) => Self::CODE_UNSTRATIFIABLE_CYCLE,
+        }
+    }
+}
+
+impl fmt::Display for StratificationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnstratifiableCycle(cycle) => cycle.fmt(f),
+        }
+    }
+}
+
+impl Error for StratificationError {}

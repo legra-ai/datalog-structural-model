@@ -1,7 +1,7 @@
 //! Rule strata preserve dependencies without coupling disjoint tuple patterns.
 
 use datalog_structural_model::{
-    Atom, ConstantSymbol, Literal, PredicateSymbol, Program, Rule, Term,
+    Atom, ConstantSymbol, Literal, PredicateSymbol, Program, Rule, RuleIndex, Term,
 };
 
 fn atom(predicate: &str, value: &str) -> Atom {
@@ -29,7 +29,10 @@ fn negative_consumer_follows_its_matching_producer() {
         vec![Literal::Negative(atom("p", "a"))],
     ));
     let schedule = Program::try_new(rules).unwrap().stratify().unwrap();
-    assert!(schedule.stratum_of_rule(2).unwrap() > schedule.stratum_of_rule(0).unwrap());
+    assert!(
+        schedule.stratum_of_rule(RuleIndex::new(2)).unwrap()
+            > schedule.stratum_of_rule(RuleIndex::new(0)).unwrap()
+    );
 }
 
 #[test]
@@ -37,7 +40,10 @@ fn positive_consumer_cannot_precede_its_predicate_producer() {
     let mut rules = producer_rules();
     rules.push(Rule::positive(atom("q", "a"), vec![atom("p", "a")]));
     let schedule = Program::try_new(rules).unwrap().stratify().unwrap();
-    assert!(schedule.stratum_of_rule(2).unwrap() >= schedule.stratum_of_rule(0).unwrap());
+    assert!(
+        schedule.stratum_of_rule(RuleIndex::new(2)).unwrap()
+            >= schedule.stratum_of_rule(RuleIndex::new(0)).unwrap()
+    );
 }
 
 #[test]

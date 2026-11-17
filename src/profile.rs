@@ -1,4 +1,5 @@
 //! Checked generic language profiles; RDF/OWL semantics belong in rule packages.
+use crate::error_code::ErrorCode;
 use crate::{DatalogCapabilities, DatalogFeature, EqualityMode, Program, ProgramValidationError};
 use std::{error::Error, fmt};
 
@@ -79,6 +80,20 @@ impl fmt::Display for ProfileCheckError {
         match self {
             Self::InvalidProgram(error) => error.fmt(f),
             Self::Unsupported(error) => error.fmt(f),
+        }
+    }
+}
+impl ProfileCheckError {
+    /// Code of [`Self::InvalidProgram`]; the wrapped error carries its own code.
+    pub const CODE_INVALID_PROGRAM: ErrorCode = ErrorCode::new("invalid-program");
+    /// Code of [`Self::Unsupported`].
+    pub const CODE_UNSUPPORTED_CAPABILITIES: ErrorCode = ErrorCode::new("unsupported-capabilities");
+    /// Stable kebab-case code of this variant.
+    #[must_use]
+    pub fn code(&self) -> ErrorCode {
+        match self {
+            Self::InvalidProgram(_) => Self::CODE_INVALID_PROGRAM,
+            Self::Unsupported(_) => Self::CODE_UNSUPPORTED_CAPABILITIES,
         }
     }
 }

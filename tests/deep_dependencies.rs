@@ -2,7 +2,7 @@
 
 use std::{env, process::Command, thread};
 
-use datalog_structural_model::{Atom, Literal, PredicateSymbol, Program, Rule};
+use datalog_structural_model::{Atom, Literal, PredicateSymbol, Program, Rule, RuleIndex};
 
 #[test]
 fn deep_dependency_chain_uses_heap_traversal() {
@@ -28,7 +28,7 @@ fn deep_dependency_chain_uses_heap_traversal() {
                 let program = Program { rules };
                 let strata = program.stratify().unwrap();
                 assert_eq!(strata.strata.len(), 4096);
-                assert_eq!(strata.stratum_of_rule(4095), Some(4095));
+                assert_eq!(strata.stratum_of_rule(RuleIndex::new(4095)), Some(4095));
             })
             .unwrap()
             .join()

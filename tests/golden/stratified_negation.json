@@ -1,0 +1,36 @@
+{
+  "rules": [
+    {
+      "head": {
+        "predicate": "bachelor",
+        "terms": [
+          {
+            "Variable": "x"
+          }
+        ]
+      },
+      "body": [
+        {
+          "Positive": {
+            "predicate": "person",
+            "terms": [
+              {
+                "Variable": "x"
+              }
+            ]
+          }
+        },
+        {
+          "Negative": {
+            "predicate": "married",
+            "terms": [
+              {
+                "Variable": "x"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

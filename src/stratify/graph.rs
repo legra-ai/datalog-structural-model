@@ -1,8 +1,10 @@
 //! Producer-to-consumer dependencies over complete tuple patterns.
 
+use super::cycle::StrictDependencyKind;
 use super::pattern::overlaps;
 use super::tarjan::TarjanState;
 use crate::ir::{Atom, Literal, PredicateSymbol, Program};
+use crate::position::{LiteralIndex, LiteralPath};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) type NodeKey = usize;
@@ -16,7 +18,14 @@ pub(super) struct DependencyGraph {
 #[derive(Clone, Debug)]
 pub(super) struct DependencyEdge {
     pub(super) target: NodeKey,
-    pub(super) negated: bool,
+    pub(super) strict: Option<StrictDependencyKind>,
+    pub(super) literal: LiteralPath,
+}
+
+impl DependencyEdge {
+    pub(super) fn is_strict(&self) -> bool {
+        self.strict.is_some()
+    }
 }
 
 impl DependencyGraph {
@@ -34,7 +43,7 @@ impl DependencyGraph {
             nodes: (0..program.rules.len()).collect(),
         };
         for (consumer, rule) in program.rules.iter().enumerate() {
-            graph.add_literals(&rule.body, consumer, false, &producers);
+            graph.add_literals(&rule.body, None, consumer, None, &producers);
         }
         graph
     }
@@ -42,16 +51,25 @@ impl DependencyGraph {
     fn add_literals(
         &mut self,
         body: &[Literal],
+        parent: Option<&LiteralPath>,
         consumer: usize,
-        strict: bool,
+        strict: Option<StrictDependencyKind>,
         producers: &BTreeMap<&PredicateSymbol, Vec<(usize, &Atom)>>,
     ) {
-        for literal in body {
-            let (atom, negated) = match literal {
+        for (index, literal) in body.iter().enumerate() {
+            let index = LiteralIndex::new(index);
+            let path = parent.map_or_else(|| LiteralPath::top(index), |path| path.inner(index));
+            let (atom, kind) = match literal {
                 Literal::Positive(atom) => (atom, strict),
-                Literal::Negative(atom) => (atom, true),
+                Literal::Negative(atom) => (atom, Some(StrictDependencyKind::Negation)),
                 Literal::Aggregate(aggregate) => {
-                    self.add_literals(&aggregate.inner_body, consumer, true, producers);
+                    self.add_literals(
+                        &aggregate.inner_body,
+                        Some(&path),
+                        consumer,
+                        Some(StrictDependencyKind::Aggregation),
+                        producers,
+                    );
                     continue;
                 }
                 Literal::Filter(_) | Literal::Bind { .. } => continue,
@@ -63,7 +81,8 @@ impl DependencyGraph {
                         .or_default()
                         .push(DependencyEdge {
                             target: consumer,
-                            negated,
+                            strict: kind,
+                            literal: path.clone(),
                         });
                 }
             }

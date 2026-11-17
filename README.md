@@ -79,6 +79,48 @@ The dependency graph uses strongly connected components and preserves the
 distinction between positive and negative dependencies. A recursive positive
 cycle is valid; a cycle that contains a negated dependency is rejected.
 
+
+### Error locations and codes
+
+Every validation error that concerns a location names it with typed
+positions: a `RuleIndex`, a `RuleSite` (head or body), a `LiteralPath` (the
+body literal, then one step per enclosing aggregate), and a `TermPath` (an
+`AtomSlot` or `ExpressionTermIndex`, then one argument slot per nested triple
+term or Skolem call). A cycle through negation or aggregation reports an
+`UnstratifiableCycle`: the rules and predicates of the component plus the
+offending `StrictDependency` — producer rule, consumer rule, consumer literal,
+and whether the edge is negation or aggregation.
+
+Each error variant has a stable kebab-case `ErrorCode` (`error.code()`, also
+available as `CODE_*` associated constants), such as `unsafe-negation` or
+`unstratifiable-cycle`. Codes are pinned by a census test and do not change
+when a variant is renamed.
+
+```rust
+use datalog_structural_model::{
+    Atom, Literal, LiteralIndex, LiteralPath, PredicateSymbol, Program,
+    ProgramValidationError, Rule, RuleIndex, Term, VariableSymbol,
+};
+
+let x = Term::Variable(VariableSymbol::new("x"));
+let y = Term::Variable(VariableSymbol::new("y"));
+let atom = |p: &str, terms: Vec<Term>| Atom { predicate: PredicateSymbol::new(p), terms };
+let error = Program::try_new(vec![Rule::new(
+    atom("lonely", vec![x.clone()]),
+    vec![
+        Literal::Positive(atom("person", vec![x.clone()])),
+        Literal::Negative(atom("knows", vec![x, y])),
+    ],
+)])
+.unwrap_err();
+assert_eq!(error.code().as_str(), "unsafe-negation");
+let ProgramValidationError::UnsafeNegation { rule, literal, .. } = error else {
+    unreachable!()
+};
+assert_eq!(rule, RuleIndex::new(0));
+assert_eq!(literal, LiteralPath::top(LiteralIndex::new(1)));
+```
+
 ## Serialization and checked loading
 
 All public semantic data supports Serde directly, including symbols, nested
@@ -114,6 +156,10 @@ loaded.validate_for(&profile)?;
 assert_eq!(program, loaded);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
+
+Serialized forms are pinned by exact JSON and Postcard golden files under
+`tests/golden`; regenerate them deliberately with
+`UPDATE_GOLDEN=1 cargo test --test golden_corpus`.
 
 Stratification results serialize as reports. Recompute stratification from the
 validated program when scheduling execution; loading a report does not certify

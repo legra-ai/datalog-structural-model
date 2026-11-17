@@ -109,7 +109,10 @@ fn decoded_program_errors_keep_the_original_rule_index() {
     };
     let json_error =
         serde_json::from_str::<Program>(&serde_json::to_string(&p).unwrap()).unwrap_err();
-    assert!(json_error.to_string().contains("index 1"), "{json_error}");
+    assert!(
+        json_error.to_string().contains("rule 1 is unsafe"),
+        "{json_error}"
+    );
     // Binary decoding rejects the same invalid program.
     assert!(postcard::from_bytes::<Program>(&postcard::to_allocvec(&p).unwrap()).is_err());
 }
