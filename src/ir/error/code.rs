@@ -32,6 +32,13 @@ impl ProgramValidationError {
     /// Code of [`Self::InvalidSkolemArguments`].
     pub const CODE_INVALID_SKOLEM_ARGUMENTS: ErrorCode = ErrorCode::new("invalid-skolem-arguments");
 
+    /// Code of [`Self::RuleCountExceeded`].
+    pub const CODE_RULE_COUNT_EXCEEDED: ErrorCode = ErrorCode::new("rule-count-exceeded");
+    /// Code of [`Self::BodyLengthExceeded`].
+    pub const CODE_BODY_LENGTH_EXCEEDED: ErrorCode = ErrorCode::new("body-length-exceeded");
+    /// Code of [`Self::SkolemDepthExceeded`].
+    pub const CODE_SKOLEM_DEPTH_EXCEEDED: ErrorCode = ErrorCode::new("skolem-depth-exceeded");
+
     /// Stable kebab-case code of this variant.
     #[must_use]
     pub fn code(&self) -> ErrorCode {
@@ -48,6 +55,9 @@ impl ProgramValidationError {
             Self::SkolemInBodyAtom { .. } => Self::CODE_SKOLEM_IN_BODY,
             Self::TripleTermNestingExceeded { .. } => Self::CODE_TRIPLE_TERM_NESTING_EXCEEDED,
             Self::InvalidSkolemArguments { .. } => Self::CODE_INVALID_SKOLEM_ARGUMENTS,
+            Self::RuleCountExceeded { .. } => Self::CODE_RULE_COUNT_EXCEEDED,
+            Self::BodyLengthExceeded { .. } => Self::CODE_BODY_LENGTH_EXCEEDED,
+            Self::SkolemDepthExceeded { .. } => Self::CODE_SKOLEM_DEPTH_EXCEEDED,
         }
     }
 }

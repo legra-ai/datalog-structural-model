@@ -18,7 +18,7 @@ struct Unifier {
 
 /// Whether the two atoms can denote the same ground fact. SKOLEM outputs are
 /// conservatively fresh variables: their runtime value encoding is backend-owned.
-pub(super) fn overlaps(head: &Atom, body: &Atom) -> bool {
+pub(crate) fn overlaps(head: &Atom, body: &Atom) -> bool {
     if head.predicate != body.predicate || head.arity() != body.arity() {
         return false;
     }

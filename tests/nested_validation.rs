@@ -1,7 +1,7 @@
 //! All expression positions participate in structural safety validation.
 use datalog_structural_model::{
-    Atom, BindExpr, BuiltinFilter, ConstantSymbol, Literal, MAX_TRIPLE_TERM_NESTING,
-    PredicateSymbol, Program, Rule, Term, VariableSymbol,
+    Atom, BindExpr, BuiltinFilter, ConstantSymbol, Literal, PredicateSymbol, Program, Rule, Term,
+    ValidationLimits, VariableSymbol,
 };
 fn var(s: &str) -> Term {
     Term::Variable(VariableSymbol::new(s))
@@ -47,7 +47,7 @@ fn variables_inside_bind_triple_terms_must_be_bound() {
 #[test]
 fn triple_depth_inside_expression_trees_is_checked() {
     let mut term = Term::Constant(ConstantSymbol::new("value"));
-    for _ in 0..=MAX_TRIPLE_TERM_NESTING {
+    for _ in 0..=ValidationLimits::STANDARD_TRIPLE_TERM_NESTING {
         term = triple(term);
     }
     assert!(

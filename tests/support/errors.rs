@@ -1,8 +1,9 @@
 //! One sample of every error variant, with typed positions filled in.
 use datalog_structural_model::{
-    AtomSlot, ExpressionTermIndex, LiteralIndex, LiteralPath, PredicateSymbol,
-    ProgramValidationError, RuleIndex, RuleSite, StrictDependency, StrictDependencyKind, TermPath,
-    TermRoot, UnstratifiableCycle, VariableSymbol,
+    ArgumentPosition, Atom, AtomSlot, ConstantSymbol, ExpressionTermIndex, LiteralIndex,
+    LiteralPath, PredicateSymbol, Program, ProgramValidationError, Rule, RuleIndex, RuleSite,
+    StrictDependency, StrictDependencyKind, Term, TermPath, TermRoot, TerminationViolation,
+    UnstratifiableCycle, VariableSymbol,
 };
 
 pub fn literal() -> LiteralPath {
@@ -11,6 +12,33 @@ pub fn literal() -> LiteralPath {
 
 pub fn term() -> TermPath {
     TermPath::new(TermRoot::Slot(AtomSlot::new(1))).child(AtomSlot::new(0))
+}
+
+pub fn position(predicate: &str, slot: usize) -> ArgumentPosition {
+    ArgumentPosition::new(
+        PredicateSymbol::new(predicate),
+        AtomSlot::new(slot),
+        RuleIndex::new(0),
+        RuleSite::Head,
+    )
+}
+
+/// `node(SKOLEM(n, x)) :- node(x)`: the canonical cyclic Skolem edge.
+pub fn termination_violation() -> TerminationViolation {
+    let x = Term::Variable(VariableSymbol::new("x"));
+    let skolem = Term::Skolem {
+        name: ConstantSymbol::new("n"),
+        args: vec![x.clone()],
+    };
+    let atom = |term| Atom {
+        predicate: PredicateSymbol::new("node"),
+        terms: vec![term],
+    };
+    Program {
+        rules: vec![Rule::positive(atom(skolem), vec![atom(x)])],
+    }
+    .check_weak_acyclicity()
+    .unwrap_err()
 }
 
 pub fn cycle() -> UnstratifiableCycle {
@@ -84,6 +112,17 @@ pub fn every_program_error() -> Vec<ProgramValidationError> {
             rule,
             site: RuleSite::Body(literal()),
             term: TermPath::new(TermRoot::ExpressionTerm(ExpressionTermIndex::new(0))),
+        },
+        ProgramValidationError::RuleCountExceeded { count: 9, limit: 8 },
+        ProgramValidationError::BodyLengthExceeded {
+            rule,
+            length: 3,
+            limit: 2,
+        },
+        ProgramValidationError::SkolemDepthExceeded {
+            position: position("node", 1),
+            depth: 2,
+            limit: 1,
         },
     ]
 }

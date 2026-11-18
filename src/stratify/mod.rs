@@ -9,7 +9,6 @@ mod cycle;
 mod entry;
 mod graph;
 mod pattern;
-mod tarjan;
 mod types;
 
 #[cfg(test)]
@@ -17,4 +16,5 @@ mod tests;
 
 pub use cycle::{StrictDependency, StrictDependencyKind, UnstratifiableCycle};
 pub(crate) use entry::stratify;
+pub(crate) use pattern::overlaps;
 pub use types::{Stratification, StratificationError, Stratum};

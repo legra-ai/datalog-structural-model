@@ -107,3 +107,15 @@ impl Literal {
         matches!(self, Self::Aggregate(_))
     }
 }
+
+impl Literal {
+    /// Number of literals in `body`, recursing into aggregate inner bodies.
+    pub(super) fn count(body: &[Self]) -> usize {
+        body.iter()
+            .map(|literal| match literal {
+                Self::Aggregate(aggregate) => 1 + Self::count(&aggregate.inner_body),
+                _ => 1,
+            })
+            .sum()
+    }
+}

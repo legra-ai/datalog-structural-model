@@ -13,7 +13,7 @@ keywords = ["datalog", "rules", "logic", "stratification", "ir"]
 categories = ["data-structures", "parser-implementations"]
 publish = true
 build = "build.rs"
-include = ["Cargo.toml", "build.rs", "README.md", "LICENSE-APACHE", "LICENSE-MIT", "src/**/*.rs", "tests/**/*.rs", "tests/golden/*.json", "tests/golden/*.postcard"]
+include = ["Cargo.toml", "build.rs", "README.md", "LICENSE-APACHE", "LICENSE-MIT", "src/**/*.rs", "tests/**/*.rs", "tests/golden/*.json", "tests/golden/*.postcard", "tests/golden/*.txt"]
 
 [dependencies]
 rustc-hash = "2"

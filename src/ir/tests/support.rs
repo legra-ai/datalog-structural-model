@@ -12,7 +12,8 @@ pub(super) use crate::ir::literal::Literal;
 pub(super) use crate::ir::program::Program;
 pub(super) use crate::ir::rule::Rule;
 pub(super) use crate::ir::symbols::{ConstantSymbol, PredicateSymbol, VariableSymbol};
-pub(super) use crate::ir::term::{MAX_TRIPLE_TERM_NESTING, Term};
+pub(super) use crate::ir::term::Term;
+pub(super) use crate::limits::ValidationLimits;
 pub(super) use crate::position::{
     AtomSlot, LiteralIndex, LiteralPath, RuleIndex, RuleSite, TermPath, TermRoot,
 };

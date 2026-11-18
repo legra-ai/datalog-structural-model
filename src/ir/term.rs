@@ -1,4 +1,4 @@
-//! Datalog [`Term`] enum and the triple-term nesting bound.
+//! Datalog [`Term`] enum.
 
 use std::fmt;
 
@@ -20,7 +20,8 @@ use super::symbols::{ConstantSymbol, VariableSymbol};
 /// These encodings are structurally distinct; this model neither converts
 /// between them nor validates RDF term domains or blank-node scope. Display
 /// text is not a canonical identity or serialization. Nesting is bounded by
-/// [`MAX_TRIPLE_TERM_NESTING`]; programs exceeding it are rejected by
+/// [`ValidationLimits::triple_term_nesting`](crate::ValidationLimits::triple_term_nesting);
+/// programs exceeding it are rejected by
 /// [`Program::validate`](super::program::Program::validate).
 ///
 /// The `Skolem` variant (extension) is a deterministic fresh-IRI
@@ -114,18 +115,6 @@ impl Term {
         matches!(self, Self::Skolem { .. })
     }
 }
-
-/// Maximum allowed nesting depth for [`Term::TripleTerm`]
-/// variants. Programs whose triple-term nesting exceeds this
-/// limit are rejected at
-/// [`Program::validate`](super::program::Program::validate) time.
-///
-/// The bound exists because unification cost grows with nesting
-/// and because the W3C RDF-star CG has not specified a
-/// normative bound — see
-/// [rdf12-triple-term-reasoning.mdx](the RDF-star specification)
-/// for the rationale.
-pub const MAX_TRIPLE_TERM_NESTING: usize = 4;
 
 /// Display a [`Term`]: variables as `?<name>`, constants as their
 /// raw symbol, and triple terms as `<< s p o >>` per

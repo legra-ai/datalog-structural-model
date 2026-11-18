@@ -114,6 +114,22 @@ impl fmt::Display for ProgramValidationError {
                 f,
                 "{rule}, {site}, {term}: Skolem arguments must be variables or constants"
             ),
+            Self::RuleCountExceeded { count, limit } => {
+                write!(f, "program has {count} rules; limit is {limit}")
+            }
+            Self::BodyLengthExceeded {
+                rule,
+                length,
+                limit,
+            } => write!(f, "{rule}: body has {length} literals; limit is {limit}"),
+            Self::SkolemDepthExceeded {
+                position,
+                depth,
+                limit,
+            } => write!(
+                f,
+                "invented values reach depth {depth} at {position}; limit is {limit}"
+            ),
         }
     }
 }

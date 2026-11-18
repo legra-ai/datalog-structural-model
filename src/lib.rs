@@ -6,17 +6,21 @@ mod capability;
 mod error_code;
 mod feature;
 mod ir;
+mod limits;
 mod position;
 mod profile;
 mod requirements;
+mod scc;
 mod stratify;
+mod termination;
 
 pub use error_code::ErrorCode;
 pub use ir::{
     AggregateBody, Aggregator, Atom, BindExpr, BuiltinFilter, ConstantSymbol, EqualityMode,
-    GroundAtom, GroundTerm, Literal, MAX_TRIPLE_TERM_NESTING, PredicateSymbol, Program,
-    ProgramValidationError, Rule, Term, TermShapeError, VariableSymbol,
+    GroundAtom, GroundTerm, Literal, PredicateSymbol, Program, ProgramValidationError, Rule, Term,
+    TermShapeError, VariableSymbol,
 };
+pub use limits::ValidationLimits;
 pub use position::{
     AtomSlot, ExpressionTermIndex, LiteralIndex, LiteralPath, RuleIndex, RuleSite, TermPath,
     TermRoot,
@@ -24,6 +28,11 @@ pub use position::{
 pub use stratify::{
     Stratification, StratificationError, Stratum, StrictDependency, StrictDependencyKind,
     UnstratifiableCycle,
+};
+
+pub use termination::{
+    ArgumentPosition, InventionKind, LawVersion, SpecialEdge, TerminationCriterion,
+    TerminationViolation, WeakAcyclicity,
 };
 
 pub use capability::{DatalogCapabilities, DatalogFeature};

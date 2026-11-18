@@ -114,7 +114,7 @@ fn negated_triple_term_with_unbound_nested_variable_is_unsafe() {
     );
 }
 
-/// Triple-term nesting deeper than [`MAX_TRIPLE_TERM_NESTING`]
+/// Triple-term nesting deeper than [`ValidationLimits::STANDARD_TRIPLE_TERM_NESTING`]
 /// must be rejected. Builds a 5-deep nesting (one more than
 /// the default limit of 4).
 #[test]
@@ -146,7 +146,7 @@ fn excessive_triple_term_nesting_is_rejected() {
     assert_eq!(rule, rule0());
     assert_eq!(site, RuleSite::Head);
     assert_eq!(term, slot(0));
-    assert_eq!(limit, MAX_TRIPLE_TERM_NESTING);
+    assert_eq!(limit, ValidationLimits::STANDARD_TRIPLE_TERM_NESTING);
     assert!(depth > limit, "depth {depth} must exceed limit {limit}");
 }
 

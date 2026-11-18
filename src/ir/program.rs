@@ -5,6 +5,7 @@ use super::equality_mode::EqualityMode;
 use super::error::ProgramValidationError;
 use super::literal::Literal;
 use super::rule::{LiteralFault, Rule};
+use crate::limits::ValidationLimits;
 use crate::position::{LiteralIndex, LiteralPath, RuleIndex};
 use crate::stratify::{Stratification, stratify};
 
@@ -46,7 +47,7 @@ impl Program {
     /// [`ProgramValidationError::UnstratifiableCycle`] when the
     /// program contains a recursive cycle through negation.
     pub fn validate(&self) -> Result<(), ProgramValidationError> {
-        self.validate_with_equality_mode(EqualityMode::Default)
+        self.validate_within(EqualityMode::Default, &ValidationLimits::standard())
     }
 
     /// Validate the program under a specified equality-reasoning
@@ -70,11 +71,40 @@ impl Program {
         &self,
         equality_mode: EqualityMode,
     ) -> Result<(), ProgramValidationError> {
+        self.validate_within(equality_mode, &ValidationLimits::standard())
+    }
+
+    /// Validate under an equality mode and explicit structural `limits`.
+    ///
+    /// Checks the rule count, each rule's body length and triple-term
+    /// nesting against `limits` before the safety and stratification checks
+    /// of [`Self::validate_with_equality_mode`]. The Skolem depth limit
+    /// needs the termination analysis and is enforced by
+    /// [`Self::validate_for`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProgramValidationError::RuleCountExceeded`],
+    /// [`ProgramValidationError::BodyLengthExceeded`] or
+    /// [`ProgramValidationError::TripleTermNestingExceeded`] with the limit
+    /// and the value reached, or any error of
+    /// [`Self::validate_with_equality_mode`].
+    pub fn validate_within(
+        &self,
+        equality_mode: EqualityMode,
+        limits: &ValidationLimits,
+    ) -> Result<(), ProgramValidationError> {
+        if self.rules.len() > limits.rules() {
+            return Err(ProgramValidationError::RuleCountExceeded {
+                count: self.rules.len(),
+                limit: limits.rules(),
+            });
+        }
         if equality_mode == EqualityMode::SameAs {
             check_equality_mode_compatibility(&self.rules)?;
         }
         for (index, rule) in self.rules.iter().enumerate() {
-            rule.validate(RuleIndex::new(index))?;
+            rule.validate(RuleIndex::new(index), limits)?;
         }
         // Stratification check — reject programs with recursion
         // through negation.
@@ -129,8 +159,20 @@ fn check_equality_mode_compatibility(rules: &[Rule]) -> Result<(), ProgramValida
 
 impl Rule {
     /// Per-rule shape and safety checks, in reporting order.
-    fn validate(&self, rule: RuleIndex) -> Result<(), ProgramValidationError> {
-        self.validate_term_shapes(rule)?;
+    fn validate(
+        &self,
+        rule: RuleIndex,
+        limits: &ValidationLimits,
+    ) -> Result<(), ProgramValidationError> {
+        let length = self.literal_count();
+        if length > limits.body_literals() {
+            return Err(ProgramValidationError::BodyLengthExceeded {
+                rule,
+                length,
+                limit: limits.body_literals(),
+            });
+        }
+        self.validate_term_shapes(rule, limits)?;
         let variables = self.unsafe_head_variables();
         if !variables.is_empty() {
             return Err(ProgramValidationError::UnsafeRule { rule, variables });
