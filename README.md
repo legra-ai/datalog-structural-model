@@ -68,6 +68,69 @@ program in memory because a rule program is a finite description, but the
 facts matched by that program are not part of this crate and must not be
 materialized here.
 
+## Rule heads
+
+`Rule::head` is a `RuleHead`:
+
+- `Atom` — one atom, plain Datalog;
+- `Conjunction(HeadConjunction)` — several atoms derived from one body match;
+- `Existential { variables, conjunction }` — `∃ variables . conjunction`;
+- `Disjunction(HeadDisjunction)` — at least one conjunction holds;
+- `Falsum` — `false`, an inconsistency constraint: the body must not match.
+
+`HeadConjunction`, `HeadDisjunction` and `ExistentialVariables` are non-empty
+by construction and by deserialization (`EmptyHeadCollection`, code
+`empty-head-collection`); existential variables form a sorted set.
+`Rule::new` and `Rule::positive` accept anything convertible into a
+`RuleHead`, including an `Atom`.
+
+`Rule::head_form()` returns a `HeadForm` (`Atomic`, `Conjunctive`,
+`Existential`, `Disjunctive`, `Inconsistency`), a pure function of the head
+with fixed precedence: falsum, then existential, then more than one disjunct,
+then more than one atom, else atomic. A one-atom conjunction is therefore
+atomic. There is no no-output head: an operational rule that runs its body but
+emits nothing has meaning only to an evaluator, and this crate never executes
+rules, so `Falsum` is the only empty head.
+
+Every head reads as disjuncts of atoms; `HeadAtomPath` (a `HeadDisjunctIndex`
+and a `HeadAtomIndex`) addresses one atom, and an atomic head is disjunct 0,
+atom 0. Range restriction exempts existential variables, which must occur in
+the head (`unused-existential-variable`) and must not be bound by the body
+(`existential-variable-bound-in-body`). Every atom of a conjunctive,
+existential or disjunctive head is a producer for stratification; `Falsum`
+produces nothing.
+
+```rust
+use datalog_structural_model::{
+    Atom, DatalogCapabilities, DatalogFeature, DatalogProfile, EqualityMode,
+    ExistentialVariables, HeadConjunction, HeadForm, PredicateSymbol, ProfileCheckError,
+    Program, Rule, RuleHead, RuleIndex, Term, VariableSymbol,
+};
+
+let x = || Term::Variable(VariableSymbol::new("x"));
+let y = || Term::Variable(VariableSymbol::new("y"));
+let atom = |p: &str, terms| Atom { predicate: PredicateSymbol::new(p), terms };
+let head = RuleHead::Existential {
+    variables: ExistentialVariables::try_new([VariableSymbol::new("y")])?,
+    conjunction: HeadConjunction::try_new(vec![atom("owns", vec![x(), y()])])?,
+};
+let program = Program::try_new(vec![Rule::positive(head, vec![atom("person", vec![x()])])])?;
+assert_eq!(program.rules[0].head_form(), HeadForm::Existential);
+assert_eq!(
+    program.validate_for(&DatalogProfile::positive()),
+    Err(ProfileCheckError::UnsupportedHeadForm {
+        rule: RuleIndex::new(0),
+        form: HeadForm::Existential,
+    })
+);
+let chase = DatalogProfile::new(
+    DatalogCapabilities::positive().with(DatalogFeature::ExistentialHeads),
+    EqualityMode::Default,
+);
+program.validate_for(&chase)?;
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
 ## Validation and stratification
 
 `Program::validate` checks range restriction, variable safety, supported
@@ -83,7 +146,8 @@ cycle is valid; a cycle that contains a negated dependency is rejected.
 ### Error locations and codes
 
 Every validation error that concerns a location names it with typed
-positions: a `RuleIndex`, a `RuleSite` (head or body), a `LiteralPath` (the
+positions: a `RuleIndex`, a `RuleSite` (a head atom's `HeadAtomPath`, or
+the body), a `LiteralPath` (the
 body literal, then one step per enclosing aggregate), and a `TermPath` (an
 `AtomSlot` or `ExpressionTermIndex`, then one argument slot per nested triple
 term or Skolem call). A cycle through negation or aggregation reports an
@@ -176,7 +240,11 @@ builds the position graph and returns `Result<WeakAcyclicity,
 TerminationViolation>`. Nodes are argument slots of atom occurrences
 (`ArgumentPosition`: predicate, `AtomSlot`, `RuleIndex`, `RuleSite`). A head
 variable copied from a body slot adds an ordinary edge; a value invented in the
-head adds a special edge from every body slot feeding it. A head slot feeds a
+head adds a special edge from every body slot feeding it. An existential head
+variable is treated like a Skolem term over the frontier: its slot receives an
+`InventionKind::Existential` special edge from every body slot binding a
+non-existential head variable. Every head atom is its own occurrence. A head
+slot feeds a
 body slot only when the two atoms can match the same fact, so constants that
 keep patterns apart also break cycles. The analysis reads only the program,
 reuses the stratifier's Tarjan traversal, and is bounded by program size, never
@@ -234,7 +302,13 @@ result:
 - variables, constants, triple terms and Skolem terms are distinct, so a
   variable `x` never collides with a constant `x`;
 - positive, negative, filter, bind and aggregate literals and every filter,
-  expression and aggregator operator are distinct.
+  expression and aggregator operator are distinct;
+- an atomic head writes its atom exactly as the original encoding did, so
+  existing digests are unchanged; every other head form writes the count
+  `u64::MAX` (never a valid text length, so never the start of an atom) and a
+  form tag, then its existential variables, conjunction or disjuncts. A
+  one-atom conjunction and an atom are different authored programs with
+  different digests.
 
 `ValidationContract` pairs an `EqualityMode`, `ValidationLimits` and a
 `TerminationCriterion` (with its law version). `ValidationContract::digest_for`
@@ -292,11 +366,19 @@ operators. `DatalogProfile::stratified()` adds stratified negation. Custom profi
 pair an explicit `DatalogCapabilities` set with an equality validation regime.
 
 `Program::required_capabilities()` inspects the entire program, including nested
-bindings, filters, triple terms, Skolem terms and aggregate inner bodies. Filter,
+bindings, filters, triple terms, Skolem terms, aggregate inner bodies and head
+forms. Filter,
 binding and aggregate requirements identify exact operations, rather than broad
 "supports expressions" flags. `Program::validate_for` rejects unsupported
 features with a typed missing-capability set, and retains the existing rejection
 of negation/aggregation under equality rewriting.
+
+Non-atomic heads need `ConjunctiveHeads`, `ExistentialHeads`,
+`DisjunctiveHeads` or `InconsistencyConstraints`. `Program::validate_for`
+checks head forms first and refuses the first rule whose form is not declared
+with `ProfileCheckError::UnsupportedHeadForm { rule, form }` (code
+`unsupported-head-form`), never folded into the generic missing-capability
+error.
 
 A capability declaration describes a contract, not proof of engine support.
 `DatalogCapabilities::all_model_features()` lists what the IR can represent;

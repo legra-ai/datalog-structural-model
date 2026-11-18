@@ -35,6 +35,9 @@ impl Program {
         let mut requirements = Requirements::default();
         for rule in &self.rules {
             rule.walk(&mut requirements);
+            if let Some(feature) = rule.head_form().required_feature() {
+                requirements.0.insert(feature);
+            }
         }
         requirements.0
     }

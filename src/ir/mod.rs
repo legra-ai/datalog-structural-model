@@ -7,6 +7,7 @@ mod equality_mode;
 mod error;
 mod filter;
 mod ground;
+mod head;
 mod literal;
 mod program;
 mod rule;
@@ -28,6 +29,10 @@ pub use equality_mode::EqualityMode;
 pub use error::ProgramValidationError;
 pub use filter::BuiltinFilter;
 pub use ground::{GroundAtom, GroundTerm};
+pub use head::{
+    EmptyHeadCollection, ExistentialVariables, HeadCollectionKind, HeadConjunction,
+    HeadDisjunction, HeadForm, RuleHead,
+};
 pub use literal::Literal;
 pub use program::Program;
 pub use rule::Rule;

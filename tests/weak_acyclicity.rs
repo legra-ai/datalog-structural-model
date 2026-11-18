@@ -2,8 +2,8 @@
 mod support;
 
 use datalog_structural_model::{
-    ArgumentPosition, AtomSlot, InventionKind, LawVersion, Literal, LiteralIndex, LiteralPath,
-    PredicateSymbol, Program, Rule, RuleIndex, RuleSite, TerminationCriterion,
+    ArgumentPosition, AtomSlot, HeadAtomPath, InventionKind, LawVersion, Literal, LiteralIndex,
+    LiteralPath, PredicateSymbol, Program, Rule, RuleIndex, RuleSite, TerminationCriterion,
 };
 use support::build::{atom, constant, increment, rule, skolem, triple, var};
 
@@ -16,7 +16,7 @@ fn head(predicate: &str, slot: usize, rule: usize) -> ArgumentPosition {
         PredicateSymbol::new(predicate),
         AtomSlot::new(slot),
         RuleIndex::new(rule),
-        RuleSite::Head,
+        RuleSite::Head(HeadAtomPath::atomic()),
     )
 }
 

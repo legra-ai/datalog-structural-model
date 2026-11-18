@@ -15,7 +15,12 @@
       "predicate": "b",
       "slot": 0,
       "rule": 0,
-      "site": "Head"
+      "site": {
+        "Head": {
+          "disjunct": 0,
+          "atom": 0
+        }
+      }
     },
     "kind": "Skolem"
   },
@@ -34,13 +39,23 @@
       "predicate": "a",
       "slot": 0,
       "rule": 1,
-      "site": "Head"
+      "site": {
+        "Head": {
+          "disjunct": 0,
+          "atom": 0
+        }
+      }
     },
     {
       "predicate": "b",
       "slot": 0,
       "rule": 0,
-      "site": "Head"
+      "site": {
+        "Head": {
+          "disjunct": 0,
+          "atom": 0
+        }
+      }
     },
     {
       "predicate": "b",

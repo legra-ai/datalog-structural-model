@@ -27,6 +27,7 @@ fn unsafe_rule_fails_validation() {
         err,
         ProgramValidationError::UnsafeRule {
             rule: rule0(),
+            atom: crate::HeadAtomPath::atomic(),
             variables: vec![VariableSymbol::new("y")],
         }
     );

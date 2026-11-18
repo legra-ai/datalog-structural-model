@@ -6,9 +6,15 @@ use super::{
     sink::PreimageSink,
 };
 use crate::{
-    AggregateBody, Aggregator, Atom, ConstantSymbol, Literal, PredicateSymbol, Program, Rule, Term,
-    VariableSymbol,
+    AggregateBody, Aggregator, Atom, ConstantSymbol, HeadConjunction, Literal, PredicateSymbol,
+    Program, Rule, RuleHead, Term, VariableSymbol,
 };
+
+/// Leading count of every non-atomic head. An atomic head starts with its
+/// predicate's text length, which can never be `u64::MAX`, so this prefix
+/// keeps atomic-head preimages byte-identical to the original encoding while
+/// staying unambiguous.
+const NON_ATOMIC_HEAD: usize = usize::MAX;
 
 impl DomainDigest for Program {
     const DOMAIN: &'static str = "datalog-structural-model/program-digest/v1";
@@ -25,6 +31,42 @@ impl CanonicalPreimage for Rule {
     fn write_preimage(&self, sink: &mut PreimageSink) {
         self.head.write_preimage(sink);
         Literal::write_sequence(&self.body, sink);
+    }
+}
+
+impl CanonicalPreimage for RuleHead {
+    fn write_preimage(&self, sink: &mut PreimageSink) {
+        if let Self::Atom(atom) = self {
+            atom.write_preimage(sink);
+            return;
+        }
+        sink.count(NON_ATOMIC_HEAD);
+        match self {
+            Self::Atom(_) => unreachable!("atomic heads were written above"),
+            Self::Conjunction(conjunction) => {
+                sink.tag(0);
+                conjunction.write_preimage(sink);
+            }
+            Self::Existential {
+                variables,
+                conjunction,
+            } => {
+                sink.tag(1);
+                VariableSymbol::write_sequence(variables.variables(), sink);
+                conjunction.write_preimage(sink);
+            }
+            Self::Disjunction(disjunction) => {
+                sink.tag(2);
+                HeadConjunction::write_sequence(disjunction.disjuncts(), sink);
+            }
+            Self::Falsum => sink.tag(3),
+        }
+    }
+}
+
+impl CanonicalPreimage for HeadConjunction {
+    fn write_preimage(&self, sink: &mut PreimageSink) {
+        Atom::write_sequence(self.atoms(), sink);
     }
 }
 

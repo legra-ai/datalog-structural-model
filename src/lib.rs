@@ -18,14 +18,15 @@ mod termination;
 pub use digest::{ContractDigest, DigestParseError, ProgramDigest, ValidationContract};
 pub use error_code::ErrorCode;
 pub use ir::{
-    AggregateBody, Aggregator, Atom, BindExpr, BuiltinFilter, ConstantSymbol, EqualityMode,
-    GroundAtom, GroundTerm, Literal, PredicateSymbol, Program, ProgramValidationError, Rule, Term,
-    TermShapeError, VariableSymbol,
+    AggregateBody, Aggregator, Atom, BindExpr, BuiltinFilter, ConstantSymbol, EmptyHeadCollection,
+    EqualityMode, ExistentialVariables, GroundAtom, GroundTerm, HeadCollectionKind,
+    HeadConjunction, HeadDisjunction, HeadForm, Literal, PredicateSymbol, Program,
+    ProgramValidationError, Rule, RuleHead, Term, TermShapeError, VariableSymbol,
 };
 pub use limits::ValidationLimits;
 pub use position::{
-    AtomSlot, ExpressionTermIndex, LiteralIndex, LiteralPath, RuleIndex, RuleSite, TermPath,
-    TermRoot,
+    AtomSlot, ExpressionTermIndex, HeadAtomIndex, HeadAtomPath, HeadDisjunctIndex, LiteralIndex,
+    LiteralPath, RuleIndex, RuleSite, TermPath, TermRoot,
 };
 pub use stratify::{
     Stratification, StratificationError, Stratum, StrictDependency, StrictDependencyKind,

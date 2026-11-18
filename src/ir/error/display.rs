@@ -33,10 +33,24 @@ impl fmt::Display for ProgramValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[{}] ", self.code())?;
         match self {
-            Self::UnsafeRule { rule, variables } => write!(
+            Self::UnsafeRule {
+                rule,
+                atom,
+                variables,
+            } => write!(
                 f,
-                "{rule} is unsafe; head variables not bound by the body: {}",
+                "{rule} is unsafe at {atom}; head variables not bound by the body: {}",
                 VariableList(variables)
+            ),
+            Self::UnusedExistentialVariable { rule, variable } => write!(
+                f,
+                "{rule}: existential variable {} occurs in no head atom",
+                variable.as_str()
+            ),
+            Self::ExistentialVariableBoundInBody { rule, variable } => write!(
+                f,
+                "{rule}: existential variable {} is also bound by the body",
+                variable.as_str()
             ),
             Self::UnsafeNegation {
                 rule,

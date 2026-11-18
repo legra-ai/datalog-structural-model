@@ -3,6 +3,7 @@
 
 use super::equality_mode::EqualityMode;
 use super::error::ProgramValidationError;
+use super::head::{ExistentialFault, HeadFault};
 use super::literal::Literal;
 use super::rule::{LiteralFault, Rule};
 use crate::limits::ValidationLimits;
@@ -173,9 +174,24 @@ impl Rule {
             });
         }
         self.validate_term_shapes(rule, limits)?;
-        let variables = self.unsafe_head_variables();
-        if !variables.is_empty() {
-            return Err(ProgramValidationError::UnsafeRule { rule, variables });
+        match self.existential_fault() {
+            Some(ExistentialFault::Unused(variable)) => {
+                return Err(ProgramValidationError::UnusedExistentialVariable { rule, variable });
+            }
+            Some(ExistentialFault::BoundInBody(variable)) => {
+                return Err(ProgramValidationError::ExistentialVariableBoundInBody {
+                    rule,
+                    variable,
+                });
+            }
+            None => {}
+        }
+        if let Some(HeadFault { atom, variables }) = self.unsafe_head_variables() {
+            return Err(ProgramValidationError::UnsafeRule {
+                rule,
+                atom,
+                variables,
+            });
         }
         if let Some(LiteralFault { literal, variables }) = self.unsafe_negative_variables() {
             return Err(ProgramValidationError::UnsafeNegation {

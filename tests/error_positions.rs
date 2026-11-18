@@ -1,9 +1,9 @@
 //! Errors name the exact rule, literal, term path, and offending edge.
 use datalog_structural_model::{
     AggregateBody, Aggregator, Atom, AtomSlot, BuiltinFilter, ConstantSymbol, ExpressionTermIndex,
-    Literal, LiteralIndex, LiteralPath, PredicateSymbol, Program, ProgramValidationError, Rule,
-    RuleIndex, RuleSite, StrictDependency, StrictDependencyKind, Term, TermPath, TermRoot,
-    UnstratifiableCycle, VariableSymbol,
+    HeadAtomPath, Literal, LiteralIndex, LiteralPath, PredicateSymbol, Program,
+    ProgramValidationError, Rule, RuleIndex, RuleSite, StrictDependency, StrictDependencyKind,
+    Term, TermPath, TermRoot, UnstratifiableCycle, VariableSymbol,
 };
 
 fn var(name: &str) -> Term {
@@ -93,7 +93,7 @@ fn invalid_skolem_in_the_head_reports_head_site() {
         program.validate(),
         Err(ProgramValidationError::InvalidSkolemArguments {
             rule: RuleIndex::new(0),
-            site: RuleSite::Head,
+            site: RuleSite::Head(HeadAtomPath::atomic()),
             term: TermPath::new(TermRoot::Slot(AtomSlot::new(1))),
         })
     );

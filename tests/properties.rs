@@ -123,7 +123,11 @@ fn assert_edge_is_real(program: &Program, cycle: &UnstratifiableCycle) {
     let atom = literal.atom().expect("edge literal carries an atom");
     assert_eq!(
         atom.predicate,
-        program.rules[edge.producer.get()].head.predicate
+        program.rules[edge.producer.get()]
+            .head
+            .as_atom()
+            .unwrap()
+            .predicate
     );
     match edge.kind {
         StrictDependencyKind::Negation => assert!(literal.is_negative()),

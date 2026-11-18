@@ -25,7 +25,8 @@ pub(crate) fn stratify(program: &Program) -> Result<Stratification, Stratificati
                 let component = &sccs[scc_of[source]];
                 let mut predicates: Vec<_> = component
                     .iter()
-                    .map(|&index| program.rules[index].head.predicate.clone())
+                    .flat_map(|&index| program.rules[index].head.atoms())
+                    .map(|(_, head)| head.predicate.clone())
                     .collect();
                 predicates.sort();
                 predicates.dedup();

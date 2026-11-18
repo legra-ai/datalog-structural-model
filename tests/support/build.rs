@@ -1,6 +1,7 @@
 //! Terse program builders shared by termination tests.
 use datalog_structural_model::{
-    Atom, BindExpr, ConstantSymbol, Literal, PredicateSymbol, Rule, Term, VariableSymbol,
+    Atom, BindExpr, ConstantSymbol, ExistentialVariables, HeadConjunction, HeadDisjunction,
+    Literal, PredicateSymbol, Rule, RuleHead, Term, VariableSymbol,
 };
 
 pub fn var(name: &str) -> Term {
@@ -41,4 +42,24 @@ pub fn increment(input: &str, output: &str) -> Literal {
             Box::new(BindExpr::Term(constant("1"))),
         ),
     }
+}
+
+pub fn conjunction(atoms: Vec<Atom>) -> HeadConjunction {
+    HeadConjunction::try_new(atoms).unwrap()
+}
+
+pub fn existential(variables: &[&str], atoms: Vec<Atom>) -> RuleHead {
+    RuleHead::Existential {
+        variables: ExistentialVariables::try_new(
+            variables.iter().copied().map(VariableSymbol::new),
+        )
+        .unwrap(),
+        conjunction: conjunction(atoms),
+    }
+}
+
+pub fn disjunction(disjuncts: Vec<Vec<Atom>>) -> RuleHead {
+    RuleHead::Disjunction(
+        HeadDisjunction::try_new(disjuncts.into_iter().map(conjunction).collect()).unwrap(),
+    )
 }

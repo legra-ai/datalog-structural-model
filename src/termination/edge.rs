@@ -69,6 +69,9 @@ pub enum InventionKind {
     Bind,
     /// An aggregate folds body values into a result value.
     Aggregate,
+    /// An existential head variable stands for a witness that depends on
+    /// the rule's frontier variables.
+    Existential,
 }
 
 impl fmt::Display for InventionKind {
@@ -78,6 +81,7 @@ impl fmt::Display for InventionKind {
             Self::TripleTerm => "triple-term",
             Self::Bind => "BIND",
             Self::Aggregate => "aggregate",
+            Self::Existential => "existential",
         })
     }
 }

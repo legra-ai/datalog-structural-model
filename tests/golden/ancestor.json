@@ -2,15 +2,17 @@
   "rules": [
     {
       "head": {
-        "predicate": "ancestor",
-        "terms": [
-          {
-            "Variable": "x"
-          },
-          {
-            "Variable": "y"
-          }
-        ]
+        "Atom": {
+          "predicate": "ancestor",
+          "terms": [
+            {
+              "Variable": "x"
+            },
+            {
+              "Variable": "y"
+            }
+          ]
+        }
       },
       "body": [
         {
@@ -30,15 +32,17 @@
     },
     {
       "head": {
-        "predicate": "ancestor",
-        "terms": [
-          {
-            "Variable": "x"
-          },
-          {
-            "Variable": "z"
-          }
-        ]
+        "Atom": {
+          "predicate": "ancestor",
+          "terms": [
+            {
+              "Variable": "x"
+            },
+            {
+              "Variable": "z"
+            }
+          ]
+        }
       },
       "body": [
         {

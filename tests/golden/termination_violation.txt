@@ -1,1 +1,1 @@
-[not-weakly-acyclic] weakly-acyclic v1 is not met: Skolem edge from a[0] (rule 0, body literal 0) to b[0] (rule 0, head) lies on a cycle through positions a[0] (rule 0, body literal 0); a[0] (rule 1, head); b[0] (rule 0, head); b[0] (rule 1, body literal 0)
+[not-weakly-acyclic] weakly-acyclic v1 is not met: Skolem edge from a[0] (rule 0, body literal 0) to b[0] (rule 0, head disjunct 0 atom 0) lies on a cycle through positions a[0] (rule 0, body literal 0); a[0] (rule 1, head disjunct 0 atom 0); b[0] (rule 0, head disjunct 0 atom 0); b[0] (rule 1, body literal 0)

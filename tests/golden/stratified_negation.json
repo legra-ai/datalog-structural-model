@@ -2,12 +2,14 @@
   "rules": [
     {
       "head": {
-        "predicate": "bachelor",
-        "terms": [
-          {
-            "Variable": "x"
-          }
-        ]
+        "Atom": {
+          "predicate": "bachelor",
+          "terms": [
+            {
+              "Variable": "x"
+            }
+          ]
+        }
       },
       "body": [
         {

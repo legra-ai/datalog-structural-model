@@ -59,7 +59,7 @@ fn reordering_rules_preserves_dependency_order() {
         let program = Program::try_new(rules).unwrap();
         let schedule = program.stratify().unwrap();
         for (index, rule) in program.rules.iter().enumerate() {
-            let expected = usize::from(rule.head.terms == atom("b").terms);
+            let expected = usize::from(rule.head.as_atom().unwrap().terms == atom("b").terms);
             assert_eq!(
                 schedule.stratum_of_rule(RuleIndex::new(index)),
                 Some(expected)

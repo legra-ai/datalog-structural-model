@@ -1,7 +1,7 @@
 //! The [`ProgramValidationError`] variants.
 
 use crate::ir::symbols::VariableSymbol;
-use crate::position::{LiteralPath, RuleIndex, RuleSite, TermPath};
+use crate::position::{HeadAtomPath, LiteralPath, RuleIndex, RuleSite, TermPath};
 use crate::stratify::UnstratifiableCycle;
 use crate::termination::ArgumentPosition;
 
@@ -11,12 +11,29 @@ use crate::termination::ArgumentPosition;
 #[serde(deny_unknown_fields)]
 pub enum ProgramValidationError {
     /// Head variables are missing from the positive body, `BIND` outputs, and
-    /// aggregate exports.
+    /// aggregate exports, and are not existentially quantified.
     UnsafeRule {
         /// Rule whose head is unsafe.
         rule: RuleIndex,
-        /// Missing variables.
+        /// The first head atom with missing variables.
+        atom: HeadAtomPath,
+        /// Its missing variables.
         variables: Vec<VariableSymbol>,
+    },
+    /// An existentially quantified head variable occurs in no head atom.
+    UnusedExistentialVariable {
+        /// Rule whose head quantifies the variable.
+        rule: RuleIndex,
+        /// The first unused existential variable.
+        variable: VariableSymbol,
+    },
+    /// An existentially quantified head variable is also bound by the body,
+    /// so it would denote a body value rather than a witness.
+    ExistentialVariableBoundInBody {
+        /// Rule whose head quantifies the variable.
+        rule: RuleIndex,
+        /// The first such existential variable.
+        variable: VariableSymbol,
     },
     /// A negated body literal references variables no positive body literal
     /// binds (negation-as-failure requires a ground negated atom).

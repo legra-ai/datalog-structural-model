@@ -2,15 +2,17 @@
   "rules": [
     {
       "head": {
-        "predicate": "label",
-        "terms": [
-          {
-            "Variable": "p"
-          },
-          {
-            "Variable": "upper"
-          }
-        ]
+        "Atom": {
+          "predicate": "label",
+          "terms": [
+            {
+              "Variable": "p"
+            },
+            {
+              "Variable": "upper"
+            }
+          ]
+        }
       },
       "body": [
         {
