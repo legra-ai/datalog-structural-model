@@ -1,9 +1,9 @@
 //! One sample of every error variant, with typed positions filled in.
 use datalog_structural_model::{
-    ArgumentPosition, Atom, AtomSlot, ConstantSymbol, ExpressionTermIndex, LiteralIndex,
-    LiteralPath, PredicateSymbol, Program, ProgramValidationError, Rule, RuleIndex, RuleSite,
-    StrictDependency, StrictDependencyKind, Term, TermPath, TermRoot, TerminationViolation,
-    UnstratifiableCycle, VariableSymbol,
+    ArgumentPosition, Atom, AtomSlot, ConstantSymbol, ExpressionTermIndex, HeadAtomIndex,
+    HeadAtomPath, HeadDisjunctIndex, LiteralIndex, LiteralPath, PredicateSymbol, Program,
+    ProgramValidationError, Rule, RuleIndex, RuleSite, StrictDependency, StrictDependencyKind,
+    Term, TermPath, TermRoot, TerminationViolation, UnstratifiableCycle, VariableSymbol,
 };
 
 pub fn literal() -> LiteralPath {
@@ -19,7 +19,7 @@ pub fn position(predicate: &str, slot: usize) -> ArgumentPosition {
         PredicateSymbol::new(predicate),
         AtomSlot::new(slot),
         RuleIndex::new(0),
-        RuleSite::Head,
+        RuleSite::Head(HeadAtomPath::atomic()),
     )
 }
 
@@ -61,7 +61,16 @@ pub fn every_program_error() -> Vec<ProgramValidationError> {
     vec![
         ProgramValidationError::UnsafeRule {
             rule,
+            atom: HeadAtomPath::new(HeadDisjunctIndex::new(1), HeadAtomIndex::new(2)),
             variables: variables.clone(),
+        },
+        ProgramValidationError::UnusedExistentialVariable {
+            rule,
+            variable: VariableSymbol::new("witness"),
+        },
+        ProgramValidationError::ExistentialVariableBoundInBody {
+            rule,
+            variable: VariableSymbol::new("witness"),
         },
         ProgramValidationError::UnsafeNegation {
             rule,
@@ -103,7 +112,7 @@ pub fn every_program_error() -> Vec<ProgramValidationError> {
         },
         ProgramValidationError::TripleTermNestingExceeded {
             rule,
-            site: RuleSite::Head,
+            site: RuleSite::Head(HeadAtomPath::atomic()),
             term: term(),
             depth: 5,
             limit: 4,

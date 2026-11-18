@@ -10,7 +10,9 @@ pub(crate) trait Visitor {
 }
 impl Rule {
     pub(crate) fn walk(&self, visitor: &mut impl Visitor) {
-        self.head.walk(visitor);
+        for (_, atom) in self.head.atoms() {
+            atom.walk(visitor);
+        }
         for literal in &self.body {
             literal.walk(visitor);
         }

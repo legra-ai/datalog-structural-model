@@ -30,13 +30,17 @@ impl DependencyEdge {
 
 impl DependencyGraph {
     pub(super) fn build(program: &Program) -> Self {
-        // bounded: one entry per head in the finite rule program.
+        // bounded: one entry per head atom in the finite rule program. Every
+        // atom of a conjunctive, existential or disjunctive head is a producer;
+        // a falsum head produces nothing.
         let mut producers: BTreeMap<&PredicateSymbol, Vec<(usize, &Atom)>> = BTreeMap::new();
         for (index, rule) in program.rules.iter().enumerate() {
-            producers
-                .entry(&rule.head.predicate)
-                .or_default()
-                .push((index, &rule.head));
+            for (_, head) in rule.head.atoms() {
+                producers
+                    .entry(&head.predicate)
+                    .or_default()
+                    .push((index, head));
+            }
         }
         let mut graph = Self {
             edges: BTreeMap::new(),

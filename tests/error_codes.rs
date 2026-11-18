@@ -6,8 +6,8 @@ mod support;
 use std::collections::BTreeSet;
 
 use datalog_structural_model::{
-    ErrorCode, ProfileCheckError, ProgramValidationError, StratificationError, TermShapeError,
-    TerminationViolation,
+    EmptyHeadCollection, ErrorCode, HeadConjunction, HeadForm, ProfileCheckError,
+    ProgramValidationError, RuleIndex, StratificationError, TermShapeError, TerminationViolation,
 };
 use support::errors::{cycle, every_program_error, termination_violation};
 
@@ -15,6 +15,10 @@ use support::errors::{cycle, every_program_error, termination_violation};
 fn pinned_program_code(error: &ProgramValidationError) -> &'static str {
     match error {
         ProgramValidationError::UnsafeRule { .. } => "unsafe-rule",
+        ProgramValidationError::UnusedExistentialVariable { .. } => "unused-existential-variable",
+        ProgramValidationError::ExistentialVariableBoundInBody { .. } => {
+            "existential-variable-bound-in-body"
+        }
         ProgramValidationError::UnsafeNegation { .. } => "unsafe-negation",
         ProgramValidationError::UnsafeFilter { .. } => "unsafe-filter",
         ProgramValidationError::UnsafeBind { .. } => "unsafe-bind",
@@ -62,7 +66,7 @@ fn program_validation_codes_are_pinned_and_unique() {
                 .starts_with(&format!("[{}] ", error.code()))
         );
     }
-    assert_eq!(seen.len(), 15);
+    assert_eq!(seen.len(), 17);
 }
 
 #[test]
@@ -104,6 +108,24 @@ fn other_error_codes_are_pinned() {
         ProfileCheckError::CODE_UNSUPPORTED_CAPABILITIES.as_str(),
         "unsupported-capabilities"
     );
+    let head_form = ProfileCheckError::UnsupportedHeadForm {
+        rule: RuleIndex::new(0),
+        form: HeadForm::Disjunctive,
+    };
+    assert_eq!(head_form.code().as_str(), "unsupported-head-form");
+    assert_ne!(
+        head_form.code(),
+        ProfileCheckError::CODE_UNSUPPORTED_CAPABILITIES
+    );
+    assert_kebab(head_form.code());
+    let empty = HeadConjunction::try_new(vec![]).unwrap_err();
+    assert_eq!(empty.code().as_str(), "empty-head-collection");
+    assert_eq!(
+        empty.code(),
+        EmptyHeadCollection::CODE_EMPTY_HEAD_COLLECTION
+    );
+    assert!(empty.to_string().starts_with("[empty-head-collection] "));
+    assert_kebab(empty.code());
     let uncertified = ProfileCheckError::TerminationUncertified(termination_violation());
     assert_eq!(uncertified.code().as_str(), "termination-uncertified");
     assert_kebab(uncertified.code());

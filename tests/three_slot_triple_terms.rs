@@ -63,7 +63,7 @@ fn dynamic_predicate_tripleterm_is_checked_and_transportable() {
 #[test]
 fn nested_predicate_slot_must_be_bound() {
     let mut p = program();
-    if let Term::TripleTerm(atom) = &mut p.rules[0].head.terms[0] {
+    if let Term::TripleTerm(atom) = &mut p.rules[0].head.as_atom_mut().unwrap().terms[0] {
         atom.terms[1] = v("unbound_predicate");
     } else {
         panic!("fixture shape");

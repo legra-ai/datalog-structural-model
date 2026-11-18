@@ -6,6 +6,12 @@ use crate::error_code::ErrorCode;
 impl ProgramValidationError {
     /// Code of [`Self::UnsafeRule`].
     pub const CODE_UNSAFE_RULE: ErrorCode = ErrorCode::new("unsafe-rule");
+    /// Code of [`Self::UnusedExistentialVariable`].
+    pub const CODE_UNUSED_EXISTENTIAL_VARIABLE: ErrorCode =
+        ErrorCode::new("unused-existential-variable");
+    /// Code of [`Self::ExistentialVariableBoundInBody`].
+    pub const CODE_EXISTENTIAL_VARIABLE_BOUND_IN_BODY: ErrorCode =
+        ErrorCode::new("existential-variable-bound-in-body");
     /// Code of [`Self::UnsafeNegation`].
     pub const CODE_UNSAFE_NEGATION: ErrorCode = ErrorCode::new("unsafe-negation");
     /// Code of [`Self::UnsafeFilter`].
@@ -44,6 +50,10 @@ impl ProgramValidationError {
     pub fn code(&self) -> ErrorCode {
         match self {
             Self::UnsafeRule { .. } => Self::CODE_UNSAFE_RULE,
+            Self::UnusedExistentialVariable { .. } => Self::CODE_UNUSED_EXISTENTIAL_VARIABLE,
+            Self::ExistentialVariableBoundInBody { .. } => {
+                Self::CODE_EXISTENTIAL_VARIABLE_BOUND_IN_BODY
+            }
             Self::UnsafeNegation { .. } => Self::CODE_UNSAFE_NEGATION,
             Self::UnsafeFilter { .. } => Self::CODE_UNSAFE_FILTER,
             Self::UnsafeBind { .. } => Self::CODE_UNSAFE_BIND,

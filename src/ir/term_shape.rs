@@ -36,7 +36,7 @@ impl TermFault {
                     term,
                 }
             }
-            (Self::SkolemInBody, RuleSite::Head) => {
+            (Self::SkolemInBody, RuleSite::Head(_)) => {
                 unreachable!("Skolem terms are only faults in body literals")
             }
         }
@@ -162,8 +162,10 @@ impl Rule {
         rule: RuleIndex,
         limits: &ValidationLimits,
     ) -> Result<(), ProgramValidationError> {
-        if let Some((term, fault)) = self.head.locate_fault(false, limits) {
-            return Err(fault.into_error(rule, RuleSite::Head, term));
+        for (atom, value) in self.head.atoms() {
+            if let Some((term, fault)) = value.locate_fault(false, limits) {
+                return Err(fault.into_error(rule, RuleSite::Head(atom), term));
+            }
         }
         match locate_in_body(&self.body, None, limits) {
             Some((literal, term, fault)) => {

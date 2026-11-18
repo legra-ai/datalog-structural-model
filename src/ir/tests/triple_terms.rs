@@ -69,7 +69,10 @@ fn triple_term_in_head_with_unbound_nested_variable_is_unsafe() {
         )],
     };
     let err = program.validate().expect_err("program should be unsafe");
-    let ProgramValidationError::UnsafeRule { rule, variables } = err else {
+    let ProgramValidationError::UnsafeRule {
+        rule, variables, ..
+    } = err
+    else {
         panic!("expected UnsafeRule, got {err:?}");
     };
     assert_eq!(rule, rule0());
@@ -144,7 +147,7 @@ fn excessive_triple_term_nesting_is_rejected() {
         panic!("expected TripleTermNestingExceeded, got {err:?}");
     };
     assert_eq!(rule, rule0());
-    assert_eq!(site, RuleSite::Head);
+    assert_eq!(site, RuleSite::Head(crate::HeadAtomPath::atomic()));
     assert_eq!(term, slot(0));
     assert_eq!(limit, ValidationLimits::STANDARD_TRIPLE_TERM_NESTING);
     assert!(depth > limit, "depth {depth} must exceed limit {limit}");

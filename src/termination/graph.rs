@@ -7,8 +7,8 @@ use super::edge::{ArgumentPosition, InventionKind, SpecialEdge};
 use super::sources::VariableSources;
 use super::verdict::WeakAcyclicity;
 use super::violation::TerminationViolation;
-use crate::ir::{Atom, Program, Term};
-use crate::position::{AtomSlot, RuleIndex, RuleSite};
+use crate::ir::{Atom, Program, RuleHead, Term, VariableSymbol};
+use crate::position::{AtomSlot, HeadAtomPath, RuleIndex, RuleSite};
 use crate::scc::SuccessorGraph;
 use crate::stratify::overlaps;
 
@@ -35,10 +35,12 @@ impl PositionGraph {
             .map(|(index, rule)| VariableSources::of_body(RuleIndex::new(index), &rule.body))
             .collect();
         for (index, (rule, sources)) in program.rules.iter().zip(&scopes).enumerate() {
-            graph.add_head(RuleIndex::new(index), &rule.head, sources);
+            let head = HeadOccurrences::new(RuleIndex::new(index), &rule.head);
+            graph.add_head(&head, sources);
         }
         for (producer, rule) in program.rules.iter().enumerate() {
-            graph.add_flows(RuleIndex::new(producer), &rule.head, &scopes);
+            let head = HeadOccurrences::new(RuleIndex::new(producer), &rule.head);
+            graph.add_flows(&head, &scopes);
         }
         graph
     }
@@ -54,52 +56,67 @@ impl PositionGraph {
         id
     }
 
-    fn head_position(rule: RuleIndex, head: &Atom, slot: usize) -> ArgumentPosition {
-        ArgumentPosition::new(
-            head.predicate.clone(),
-            AtomSlot::new(slot),
-            rule,
-            RuleSite::Head,
-        )
+    fn edge(
+        &mut self,
+        from: &ArgumentPosition,
+        to: &ArgumentPosition,
+        kind: Option<InventionKind>,
+    ) {
+        let source = self.node(from);
+        let target = self.node(to);
+        self.successors[source].push((target, kind.is_some()));
+        if let Some(kind) = kind {
+            self.special.push(SpecialEdge {
+                from: from.clone(),
+                to: to.clone(),
+                kind,
+            });
+        }
     }
 
     /// Edges inside one rule, from the body positions binding each head
-    /// variable to the head slot holding it.
-    fn add_head(&mut self, rule: RuleIndex, head: &Atom, sources: &VariableSources<'_>) {
-        for (slot, term) in head.terms.iter().enumerate() {
-            let to = Self::head_position(rule, head, slot);
-            let target = self.node(&to);
-            let wrapper = match term {
-                Term::Variable(_) | Term::Constant(_) => None,
-                Term::TripleTerm(_) => Some(InventionKind::TripleTerm),
-                Term::Skolem { .. } => Some(InventionKind::Skolem),
-            };
-            term.visit_variables(&mut |variable| {
-                for source in sources.of(variable) {
-                    let invention = wrapper.or(source.invention);
-                    let from = self.node(&source.position);
-                    self.successors[from].push((target, invention.is_some()));
-                    if let Some(kind) = invention {
-                        self.special.push(SpecialEdge {
-                            from: source.position.clone(),
-                            to: to.clone(),
-                            kind,
-                        });
+    /// variable to the head slot holding it. An existential variable has no
+    /// body source; like a Skolem term over the frontier, it gets a special
+    /// edge from every body position binding a frontier variable.
+    fn add_head(&mut self, head: &HeadOccurrences<'_>, sources: &VariableSources<'_>) {
+        for (path, atom) in head.head.atoms() {
+            for (slot, term) in atom.terms.iter().enumerate() {
+                let to = head.position(path, atom, slot);
+                self.node(&to);
+                let wrapper = match term {
+                    Term::Variable(_) | Term::Constant(_) => None,
+                    Term::TripleTerm(_) => Some(InventionKind::TripleTerm),
+                    Term::Skolem { .. } => Some(InventionKind::Skolem),
+                };
+                let mut existential = false;
+                term.visit_variables(&mut |variable| {
+                    existential |= head.head.is_existential(variable);
+                    for source in sources.of(variable) {
+                        self.edge(&source.position, &to, wrapper.or(source.invention));
+                    }
+                });
+                if existential {
+                    for variable in head.frontier() {
+                        for source in sources.of(&variable) {
+                            self.edge(&source.position, &to, Some(InventionKind::Existential));
+                        }
                     }
                 }
-            });
+            }
         }
     }
 
     /// Ordinary edges from a head slot to the same slot of every positive
     /// body atom, in any rule, whose pattern can match the head's facts.
-    fn add_flows(&mut self, producer: RuleIndex, head: &Atom, scopes: &[VariableSources<'_>]) {
-        for (consumer, scope) in scopes.iter().enumerate() {
-            for body in scope.atoms.iter().filter(|body| overlaps(head, body.atom)) {
-                for slot in 0..head.arity() {
-                    let from = self.node(&Self::head_position(producer, head, slot));
-                    let to = self.node(&body.position(RuleIndex::new(consumer), slot));
-                    self.successors[from].push((to, false));
+    fn add_flows(&mut self, head: &HeadOccurrences<'_>, scopes: &[VariableSources<'_>]) {
+        for (path, atom) in head.head.atoms() {
+            for (consumer, scope) in scopes.iter().enumerate() {
+                for body in scope.atoms.iter().filter(|body| overlaps(atom, body.atom)) {
+                    for slot in 0..atom.arity() {
+                        let from = head.position(path, atom, slot);
+                        let to = body.position(RuleIndex::new(consumer), slot);
+                        self.edge(&from, &to, None);
+                    }
                 }
             }
         }
@@ -171,6 +188,36 @@ impl PositionGraph {
     }
 }
 
+/// The head of one rule, whose atom slots are graph nodes.
+struct HeadOccurrences<'a> {
+    rule: RuleIndex,
+    head: &'a RuleHead,
+}
+
+impl<'a> HeadOccurrences<'a> {
+    fn new(rule: RuleIndex, head: &'a RuleHead) -> Self {
+        Self { rule, head }
+    }
+
+    fn position(&self, path: HeadAtomPath, atom: &Atom, slot: usize) -> ArgumentPosition {
+        ArgumentPosition::new(
+            atom.predicate.clone(),
+            AtomSlot::new(slot),
+            self.rule,
+            RuleSite::Head(path),
+        )
+    }
+
+    /// Head variables that are not existential: the values a witness
+    /// depends on.
+    fn frontier(&self) -> impl Iterator<Item = VariableSymbol> + '_ {
+        self.head
+            .variables()
+            .into_iter()
+            .filter(|variable| !self.head.is_existential(variable))
+    }
+}
+
 impl SuccessorGraph for PositionGraph {
     fn node_count(&self) -> usize {
         self.positions.len()
@@ -187,7 +234,11 @@ impl Program {
     /// Nodes are argument slots of atom occurrences. Inside a rule, a head
     /// variable copied directly from a body slot adds an ordinary edge; a
     /// head value built by a Skolem term, a triple term, a `BIND` or an
-    /// aggregate adds a special edge from each body slot feeding it. Across
+    /// aggregate adds a special edge from each body slot feeding it. A head
+    /// slot holding an existential variable is treated like a Skolem term over
+    /// the frontier: a special edge arrives from every body slot binding a
+    /// non-existential head variable. Every atom of a conjunctive,
+    /// existential or disjunctive head is its own occurrence. Across
     /// rules, a head slot feeds the same slot of every positive body atom
     /// whose complete pattern can match the head, so constants that keep two
     /// patterns apart break the cycle. The program is weakly acyclic when no

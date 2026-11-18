@@ -94,3 +94,46 @@ impl ExpressionTermIndex {
         self.0
     }
 }
+
+/// Position of a disjunct in a rule head. Every non-disjunctive head has
+/// exactly one disjunct, at position zero.
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
+#[serde(transparent)]
+pub struct HeadDisjunctIndex(usize);
+
+impl HeadDisjunctIndex {
+    /// Wrap a zero-based disjunct position.
+    #[must_use]
+    pub const fn new(index: usize) -> Self {
+        Self(index)
+    }
+
+    /// The zero-based disjunct position.
+    #[must_use]
+    pub const fn get(self) -> usize {
+        self.0
+    }
+}
+
+/// Position of an atom inside one head disjunct (conjunction).
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
+#[serde(transparent)]
+pub struct HeadAtomIndex(usize);
+
+impl HeadAtomIndex {
+    /// Wrap a zero-based head-atom position.
+    #[must_use]
+    pub const fn new(index: usize) -> Self {
+        Self(index)
+    }
+
+    /// The zero-based head-atom position.
+    #[must_use]
+    pub const fn get(self) -> usize {
+        self.0
+    }
+}

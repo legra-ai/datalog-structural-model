@@ -2,6 +2,7 @@
 
 use std::fmt;
 
+use super::head_path::HeadAtomPath;
 use super::literal_path::LiteralPath;
 
 /// The part of a rule a location falls in.
@@ -10,8 +11,8 @@ use super::literal_path::LiteralPath;
 )]
 #[serde(deny_unknown_fields)]
 pub enum RuleSite {
-    /// The rule head atom.
-    Head,
+    /// One atom of the rule head.
+    Head(HeadAtomPath),
     /// A literal in the rule body.
     Body(LiteralPath),
 }
@@ -19,7 +20,7 @@ pub enum RuleSite {
 impl fmt::Display for RuleSite {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Head => f.write_str("head"),
+            Self::Head(path) => path.fmt(f),
             Self::Body(path) => path.fmt(f),
         }
     }

@@ -2,35 +2,37 @@
   "rules": [
     {
       "head": {
-        "predicate": "claim",
-        "terms": [
-          {
-            "Skolem": {
-              "name": "claim-id",
-              "args": [
-                {
-                  "Variable": "s"
-                },
-                {
-                  "Constant": "v1"
-                }
-              ]
+        "Atom": {
+          "predicate": "claim",
+          "terms": [
+            {
+              "Skolem": {
+                "name": "claim-id",
+                "args": [
+                  {
+                    "Variable": "s"
+                  },
+                  {
+                    "Constant": "v1"
+                  }
+                ]
+              }
+            },
+            {
+              "TripleTerm": {
+                "predicate": "knows",
+                "terms": [
+                  {
+                    "Variable": "a"
+                  },
+                  {
+                    "Variable": "b"
+                  }
+                ]
+              }
             }
-          },
-          {
-            "TripleTerm": {
-              "predicate": "knows",
-              "terms": [
-                {
-                  "Variable": "a"
-                },
-                {
-                  "Variable": "b"
-                }
-              ]
-            }
-          }
-        ]
+          ]
+        }
       },
       "body": [
         {

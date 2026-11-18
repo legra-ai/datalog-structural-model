@@ -2,15 +2,17 @@
   "rules": [
     {
       "head": {
-        "predicate": "payroll",
-        "terms": [
-          {
-            "Variable": "dept"
-          },
-          {
-            "Variable": "total"
-          }
-        ]
+        "Atom": {
+          "predicate": "payroll",
+          "terms": [
+            {
+              "Variable": "dept"
+            },
+            {
+              "Variable": "total"
+            }
+          ]
+        }
       },
       "body": [
         {

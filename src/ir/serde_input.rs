@@ -1,5 +1,5 @@
 //! Deserialize through the same checked construction used by callers.
-use super::{Atom, Literal, Program, ProgramValidationError, Rule};
+use super::{Atom, Literal, Program, ProgramValidationError, Rule, RuleHead};
 
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -22,7 +22,7 @@ impl TryFrom<ProgramInput> for Program {
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct RuleInput {
-    head: Atom,
+    head: RuleHead,
     body: Vec<Literal>,
 }
 impl RuleInput {

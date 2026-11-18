@@ -12,7 +12,7 @@ fn renamed_package_validates_a_recursive_rule_program() {
         terms: vec![x.clone(), Term::Constant(ConstantSymbol::new("target"))],
     };
     let rule = Rule {
-        head: edge.clone(),
+        head: edge.clone().into(),
         body: vec![Literal::Positive(edge)],
     };
     let program = Program { rules: vec![rule] };

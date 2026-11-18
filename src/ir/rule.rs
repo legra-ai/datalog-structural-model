@@ -1,10 +1,11 @@
-//! Datalog [`Rule`] — head atom plus a conjunction of body
+//! Datalog [`Rule`] — a [`RuleHead`] plus a conjunction of body
 //! literals.
 
 use std::collections::BTreeSet;
 
 use super::aggregate::AggregateBody;
 use super::atom::Atom;
+use super::head::{HeadForm, RuleHead};
 use super::literal::Literal;
 use super::symbols::VariableSymbol;
 use crate::position::{LiteralIndex, LiteralPath};
@@ -33,8 +34,8 @@ fn unbound(
 #[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "super::serde_input::RuleInput")]
 pub struct Rule {
-    /// Head atom.
-    pub head: Atom,
+    /// What the rule concludes.
+    pub head: RuleHead,
     /// Body literals. An empty body represents a fact.
     pub body: Vec<Literal>,
 }
@@ -43,8 +44,11 @@ impl Rule {
     /// Construct a standalone rule only when it is safe and stratifiable.
     /// # Errors
     /// Rejects invalid terms, unsafe variables and recursion through negation.
-    pub fn try_new(head: Atom, body: Vec<Literal>) -> Result<Self, super::ProgramValidationError> {
-        let rule = Self { head, body };
+    pub fn try_new(
+        head: impl Into<RuleHead>,
+        body: Vec<Literal>,
+    ) -> Result<Self, super::ProgramValidationError> {
+        let rule = Self::new(head, body);
         // bounded: one authored rule, not a fact relation or graph.
         super::Program {
             rules: vec![rule.clone()],
@@ -64,25 +68,36 @@ impl Rule {
     /// Convenience for the common case — callers that do not need
     /// negation never have to name [`Literal`].
     #[must_use]
-    pub fn positive(head: Atom, body: Vec<Atom>) -> Self {
+    pub fn positive(head: impl Into<RuleHead>, body: Vec<Atom>) -> Self {
         Self {
-            head,
+            head: head.into(),
             body: body.into_iter().map(Literal::Positive).collect(),
         }
     }
 
     /// Construct a rule with an explicit literal body.
     #[must_use]
-    pub fn new(head: Atom, body: Vec<Literal>) -> Self {
-        Self { head, body }
+    pub fn new(head: impl Into<RuleHead>, body: Vec<Literal>) -> Self {
+        Self {
+            head: head.into(),
+            body,
+        }
+    }
+
+    /// The logical form of the head; see [`HeadForm`].
+    #[must_use]
+    pub fn head_form(&self) -> HeadForm {
+        self.head.form()
     }
 
     /// Returns true when the rule satisfies Datalog¬ safety.
     ///
     /// A rule is safe when:
     ///
-    /// 1. Every variable appearing in the head is bound by some positive body
-    ///    atom, `Bind`, or aggregate export.
+    /// 1. Every variable appearing in a head atom is bound by some positive
+    ///    body atom, `Bind`, or aggregate export, unless the head quantifies it
+    ///    existentially. Existential variables are unused nowhere and bound
+    ///    nowhere in the body.
     /// 2. Every variable appearing in a **negative** body literal is bound by
     ///    some positive body atom, `Bind`, or aggregate export (range restriction —
     ///    negation-as-failure requires the negated atom to be ground by the
@@ -95,18 +110,12 @@ impl Rule {
     ///    and the `Bind`'s output variable is fresh in that bound set.
     #[must_use]
     pub fn is_safe(&self) -> bool {
-        self.unsafe_head_variables().is_empty()
+        self.unsafe_head_variables().is_none()
+            && self.existential_fault().is_none()
             && self.unsafe_negative_variables().is_none()
             && self.unsafe_filter_variables().is_none()
             && self.unsafe_bind_variables().is_none()
             && self.unsafe_aggregate_variables().is_none()
-    }
-
-    #[must_use]
-    pub(super) fn unsafe_head_variables(&self) -> Vec<VariableSymbol> {
-        let head_vars = self.head.variables();
-        let bound = self.bound_body_variables();
-        head_vars.difference(&bound).cloned().collect()
     }
 
     /// First negative body literal with variables no positive literal binds.
@@ -243,7 +252,7 @@ impl Rule {
     /// stay scoped inside the aggregate). Used by head,
     /// negation, and filter safety checks.
     #[must_use]
-    fn bound_body_variables(&self) -> BTreeSet<VariableSymbol> {
+    pub(super) fn bound_body_variables(&self) -> BTreeSet<VariableSymbol> {
         let mut out = self.positive_atom_variables();
         for lit in &self.body {
             match lit {

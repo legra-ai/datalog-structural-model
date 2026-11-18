@@ -1,5 +1,5 @@
 //! Finite sets of explicitly supported Datalog language features.
-use crate::{Aggregator, BindingKind, FilterKind};
+use crate::{Aggregator, BindingKind, FilterKind, HeadForm};
 use std::collections::BTreeSet;
 
 /// A language feature required by a rule program.
@@ -20,6 +20,14 @@ pub enum DatalogFeature {
     Binding(BindingKind),
     /// An exact aggregation operation.
     Aggregate(Aggregator),
+    /// Heads that conjoin several atoms.
+    ConjunctiveHeads,
+    /// Heads that quantify variables existentially.
+    ExistentialHeads,
+    /// Heads that disjoin several conjunctions.
+    DisjunctiveHeads,
+    /// Falsum heads: inconsistency constraints.
+    InconsistencyConstraints,
 }
 
 /// Language feature set. This describes a contract; it does not certify an engine.
@@ -54,6 +62,11 @@ impl DatalogCapabilities {
             .with(DatalogFeature::StratifiedNegation)
             .with(DatalogFeature::TripleTerms)
             .with(DatalogFeature::SkolemGeneration);
+        for form in HeadForm::ALL {
+            if let Some(feature) = form.required_feature() {
+                result.0.insert(feature);
+            }
+        }
         for kind in FilterKind::ALL {
             result.0.insert(DatalogFeature::Filter(*kind));
         }
