@@ -3,6 +3,7 @@
 //! Typed Datalog rule programs and stratification analysis.
 
 mod capability;
+mod digest;
 mod error_code;
 mod feature;
 mod ir;
@@ -14,6 +15,7 @@ mod scc;
 mod stratify;
 mod termination;
 
+pub use digest::{ContractDigest, DigestParseError, ProgramDigest, ValidationContract};
 pub use error_code::ErrorCode;
 pub use ir::{
     AggregateBody, Aggregator, Atom, BindExpr, BuiltinFilter, ConstantSymbol, EqualityMode,

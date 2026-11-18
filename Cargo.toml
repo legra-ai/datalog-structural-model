@@ -16,6 +16,7 @@ build = "build.rs"
 include = ["Cargo.toml", "build.rs", "README.md", "LICENSE-APACHE", "LICENSE-MIT", "src/**/*.rs", "tests/**/*.rs", "tests/golden/*.json", "tests/golden/*.postcard", "tests/golden/*.txt"]
 
 [dependencies]
+blake3 = "1"
 rustc-hash = "2"
 serde = { version = "1", features = ["derive"] }
 
