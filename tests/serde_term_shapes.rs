@@ -1,11 +1,11 @@
 //! Standalone term decoding cannot bypass structural limits.
 use datalog_structural_model::{
-    Atom, ConstantSymbol, GroundAtom, GroundTerm, MAX_TRIPLE_TERM_NESTING, PredicateSymbol, Term,
+    Atom, ConstantSymbol, GroundAtom, GroundTerm, PredicateSymbol, Term, ValidationLimits,
 };
 #[test]
 fn standalone_term_depth_is_checked_in_both_formats() {
     let mut value = Term::Constant(ConstantSymbol::new("value"));
-    for _ in 0..=MAX_TRIPLE_TERM_NESTING {
+    for _ in 0..=ValidationLimits::STANDARD_TRIPLE_TERM_NESTING {
         value = Term::TripleTerm(Box::new(Atom {
             predicate: PredicateSymbol::new("p"),
             terms: vec![value],
@@ -17,7 +17,7 @@ fn standalone_term_depth_is_checked_in_both_formats() {
 #[test]
 fn standalone_ground_term_depth_is_checked_in_both_formats() {
     let mut value = GroundTerm::Constant(ConstantSymbol::new("value"));
-    for _ in 0..=MAX_TRIPLE_TERM_NESTING {
+    for _ in 0..=ValidationLimits::STANDARD_TRIPLE_TERM_NESTING {
         value = GroundTerm::TripleTerm(Box::new(GroundAtom {
             predicate: PredicateSymbol::new("p"),
             args: vec![value],
@@ -44,7 +44,7 @@ fn standalone_skolem_arguments_are_checked_in_both_formats() {
 fn supported_depths_and_flat_skolem_arguments_round_trip() {
     let mut term = Term::Constant(ConstantSymbol::new("value"));
     let mut ground = GroundTerm::Constant(ConstantSymbol::new("value"));
-    for depth in 0..=MAX_TRIPLE_TERM_NESTING {
+    for depth in 0..=ValidationLimits::STANDARD_TRIPLE_TERM_NESTING {
         assert_eq!(
             serde_json::from_str::<Term>(&serde_json::to_string(&term).unwrap()).unwrap(),
             term
@@ -61,7 +61,7 @@ fn supported_depths_and_flat_skolem_arguments_round_trip() {
             postcard::from_bytes::<GroundTerm>(&postcard::to_allocvec(&ground).unwrap()).unwrap(),
             ground
         );
-        if depth < MAX_TRIPLE_TERM_NESTING {
+        if depth < ValidationLimits::STANDARD_TRIPLE_TERM_NESTING {
             term = Term::try_triple_term(Atom {
                 predicate: PredicateSymbol::new("p"),
                 terms: vec![term],

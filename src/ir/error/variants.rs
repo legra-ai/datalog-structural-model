@@ -3,6 +3,7 @@
 use crate::ir::symbols::VariableSymbol;
 use crate::position::{LiteralPath, RuleIndex, RuleSite, TermPath};
 use crate::stratify::UnstratifiableCycle;
+use crate::termination::ArgumentPosition;
 
 /// Program validation failures. Every failure tied to a location names the
 /// rule and, where narrower, the literal and term inside it.
@@ -98,7 +99,7 @@ pub enum ProgramValidationError {
         term: TermPath,
     },
     /// A [`Term::TripleTerm`](crate::Term::TripleTerm) nests deeper than
-    /// [`MAX_TRIPLE_TERM_NESTING`](crate::MAX_TRIPLE_TERM_NESTING).
+    /// [`ValidationLimits::triple_term_nesting`](crate::ValidationLimits::triple_term_nesting).
     TripleTermNestingExceeded {
         /// Rule containing the term.
         rule: RuleIndex,
@@ -119,5 +120,34 @@ pub enum ProgramValidationError {
         site: RuleSite,
         /// The Skolem term.
         term: TermPath,
+    },
+    /// The program has more rules than
+    /// [`ValidationLimits::rules`](crate::ValidationLimits::rules).
+    RuleCountExceeded {
+        /// Number of rules in the program.
+        count: usize,
+        /// Configured limit.
+        limit: usize,
+    },
+    /// A rule body has more literals than
+    /// [`ValidationLimits::body_literals`](crate::ValidationLimits::body_literals).
+    BodyLengthExceeded {
+        /// The rule.
+        rule: RuleIndex,
+        /// Its literal count, aggregate inner bodies included.
+        length: usize,
+        /// Configured limit.
+        limit: usize,
+    },
+    /// Invented values nest deeper than
+    /// [`ValidationLimits::skolem_depth`](crate::ValidationLimits::skolem_depth),
+    /// as measured by [`WeakAcyclicity::skolem_depth`](crate::WeakAcyclicity::skolem_depth).
+    SkolemDepthExceeded {
+        /// The smallest position reaching `depth`.
+        position: ArgumentPosition,
+        /// Depth reached.
+        depth: usize,
+        /// Configured limit.
+        limit: usize,
     },
 }

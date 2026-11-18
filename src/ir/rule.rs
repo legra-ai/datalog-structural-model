@@ -53,6 +53,12 @@ impl Rule {
         Ok(rule)
     }
 
+    /// Number of body literals, counting each aggregate's inner body.
+    #[must_use]
+    pub fn literal_count(&self) -> usize {
+        Literal::count(&self.body)
+    }
+
     /// Construct a rule whose body contains only positive literals.
     ///
     /// Convenience for the common case — callers that do not need

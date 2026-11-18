@@ -165,8 +165,56 @@ Stratification results serialize as reports. Recompute stratification from the
 validated program when scheduling execution; loading a report does not certify
 an executable plan. Serde encodings are neither canonical hashes nor RDF concrete
 syntaxes. Callers own decoding resource budgets; this crate owns structural and
-program-safety validation. The supported triple-term nesting depth remains
-`MAX_TRIPLE_TERM_NESTING`.
+program-safety validation. Structural ceilings are typed `ValidationLimits`
+(see below).
+
+## Termination: weak acyclicity
+
+Skolem terms, head triple terms, `BIND` and aggregates invent values, so a
+recursive program can derive facts forever. `Program::check_weak_acyclicity`
+builds the position graph and returns `Result<WeakAcyclicity,
+TerminationViolation>`. Nodes are argument slots of atom occurrences
+(`ArgumentPosition`: predicate, `AtomSlot`, `RuleIndex`, `RuleSite`). A head
+variable copied from a body slot adds an ordinary edge; a value invented in the
+head adds a special edge from every body slot feeding it. A head slot feeds a
+body slot only when the two atoms can match the same fact, so constants that
+keep patterns apart also break cycles. The analysis reads only the program,
+reuses the stratifier's Tarjan traversal, and is bounded by program size, never
+by data.
+
+A program is weakly acyclic when no special edge lies on a strongly connected
+component. The certificate reports `skolem_depth()`, the most special edges on
+any path. A violation carries the first cyclic `SpecialEdge` in canonical
+order, its sorted component, and the stable code `not-weakly-acyclic`. The
+criterion is a versioned `#[non_exhaustive]` `TerminationCriterion`
+(`WeaklyAcyclic`, `label()` `weakly-acyclic`, `law_version()` 1). It is
+sufficient, not necessary: a violation is not a proof of divergence.
+
+```rust
+use datalog_structural_model::{
+    Atom, ConstantSymbol, InventionKind, PredicateSymbol, Program, Rule, Term, VariableSymbol,
+};
+
+let x = Term::Variable(VariableSymbol::new("x"));
+let next = Term::Skolem { name: ConstantSymbol::new("next"), args: vec![x.clone()] };
+let node = |term| Atom { predicate: PredicateSymbol::new("node"), terms: vec![term] };
+let program = Program { rules: vec![Rule::positive(node(next), vec![node(x)])] };
+let violation = program.check_weak_acyclicity().unwrap_err();
+assert_eq!(violation.code().as_str(), "not-weakly-acyclic");
+assert_eq!(violation.edge().kind, InventionKind::Skolem);
+```
+
+## Validation limits
+
+`ValidationLimits` bounds triple-term nesting depth (standard 4), rule count
+(65,536), literals per rule including aggregate bodies (1,024) and Skolem depth
+(64). `Program::validate` uses the standard limits; `Program::validate_within`
+takes explicit ones. Each `DatalogProfile` owns its limits (`with_limits`,
+`limits`), and `Program::validate_for` enforces them. It also requires weak
+acyclicity (`ProfileCheckError::TerminationUncertified`) and a certified Skolem
+depth within the limit. Limit errors (`rule-count-exceeded`,
+`body-length-exceeded`, `triple-term-nesting-exceeded`, `skolem-depth-exceeded`)
+report the limit and the value reached.
 
 ## Triple-term adapter conventions
 

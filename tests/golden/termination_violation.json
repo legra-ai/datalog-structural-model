@@ -1,0 +1,56 @@
+{
+  "criterion": "WeaklyAcyclic",
+  "edge": {
+    "from": {
+      "predicate": "a",
+      "slot": 0,
+      "rule": 0,
+      "site": {
+        "Body": [
+          0
+        ]
+      }
+    },
+    "to": {
+      "predicate": "b",
+      "slot": 0,
+      "rule": 0,
+      "site": "Head"
+    },
+    "kind": "Skolem"
+  },
+  "component": [
+    {
+      "predicate": "a",
+      "slot": 0,
+      "rule": 0,
+      "site": {
+        "Body": [
+          0
+        ]
+      }
+    },
+    {
+      "predicate": "a",
+      "slot": 0,
+      "rule": 1,
+      "site": "Head"
+    },
+    {
+      "predicate": "b",
+      "slot": 0,
+      "rule": 0,
+      "site": "Head"
+    },
+    {
+      "predicate": "b",
+      "slot": 0,
+      "rule": 1,
+      "site": {
+        "Body": [
+          0
+        ]
+      }
+    }
+  ]
+}

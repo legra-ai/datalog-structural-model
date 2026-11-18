@@ -7,8 +7,9 @@ use std::collections::BTreeSet;
 
 use datalog_structural_model::{
     ErrorCode, ProfileCheckError, ProgramValidationError, StratificationError, TermShapeError,
+    TerminationViolation,
 };
-use support::errors::{cycle, every_program_error};
+use support::errors::{cycle, every_program_error, termination_violation};
 
 /// Exhaustive on purpose: no wildcard arm.
 fn pinned_program_code(error: &ProgramValidationError) -> &'static str {
@@ -27,6 +28,9 @@ fn pinned_program_code(error: &ProgramValidationError) -> &'static str {
         ProgramValidationError::SkolemInBodyAtom { .. } => "skolem-in-body",
         ProgramValidationError::TripleTermNestingExceeded { .. } => "triple-term-nesting-exceeded",
         ProgramValidationError::InvalidSkolemArguments { .. } => "invalid-skolem-arguments",
+        ProgramValidationError::RuleCountExceeded { .. } => "rule-count-exceeded",
+        ProgramValidationError::BodyLengthExceeded { .. } => "body-length-exceeded",
+        ProgramValidationError::SkolemDepthExceeded { .. } => "skolem-depth-exceeded",
     }
 }
 
@@ -58,7 +62,7 @@ fn program_validation_codes_are_pinned_and_unique() {
                 .starts_with(&format!("[{}] ", error.code()))
         );
     }
-    assert_eq!(seen.len(), 12);
+    assert_eq!(seen.len(), 15);
 }
 
 #[test]
@@ -100,4 +104,19 @@ fn other_error_codes_are_pinned() {
         ProfileCheckError::CODE_UNSUPPORTED_CAPABILITIES.as_str(),
         "unsupported-capabilities"
     );
+    let uncertified = ProfileCheckError::TerminationUncertified(termination_violation());
+    assert_eq!(uncertified.code().as_str(), "termination-uncertified");
+    assert_kebab(uncertified.code());
+}
+
+#[test]
+fn termination_violation_code_is_pinned() {
+    let violation = termination_violation();
+    assert_eq!(violation.code().as_str(), "not-weakly-acyclic");
+    assert_eq!(
+        violation.code(),
+        TerminationViolation::CODE_NOT_WEAKLY_ACYCLIC
+    );
+    assert_kebab(violation.code());
+    assert!(violation.to_string().starts_with("[not-weakly-acyclic] "));
 }

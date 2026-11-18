@@ -1,6 +1,7 @@
 //! Context-free term invariants shared by constructors and checked decoding.
-use super::{Atom, ConstantSymbol, GroundAtom, GroundTerm, MAX_TRIPLE_TERM_NESTING, Term};
+use super::{Atom, ConstantSymbol, GroundAtom, GroundTerm, Term};
 use crate::error_code::ErrorCode;
+use crate::limits::ValidationLimits;
 use std::{error::Error, fmt};
 
 /// Invalid term structure, independent of variable binding or rule position.
@@ -62,23 +63,31 @@ impl Term {
         term.validate_structure()?;
         Ok(term)
     }
-    /// Check context-free structure. Rule-position and binding checks require
+    /// Check context-free structure under the standard
+    /// [`ValidationLimits`]. Rule-position and binding checks require
     /// [`super::Program::validate`].
     /// # Errors
     /// Rejects excessive triple depth or non-flat Skolem arguments.
     pub fn validate_structure(&self) -> Result<(), TermShapeError> {
+        self.validate_structure_within(&ValidationLimits::standard())
+    }
+    /// Check context-free structure under explicit `limits`.
+    /// # Errors
+    /// Rejects triple depth beyond `limits` or non-flat Skolem arguments.
+    pub fn validate_structure_within(
+        &self,
+        limits: &ValidationLimits,
+    ) -> Result<(), TermShapeError> {
         let depth = self.nesting_depth();
-        if depth > MAX_TRIPLE_TERM_NESTING {
-            return Err(TermShapeError::TripleTermNestingExceeded {
-                depth,
-                limit: MAX_TRIPLE_TERM_NESTING,
-            });
+        let limit = limits.triple_term_nesting();
+        if depth > limit {
+            return Err(TermShapeError::TripleTermNestingExceeded { depth, limit });
         }
         match self {
             Self::Variable(_) | Self::Constant(_) => {}
             Self::TripleTerm(atom) => {
                 for term in &atom.terms {
-                    term.validate_structure()?;
+                    term.validate_structure_within(limits)?;
                 }
             }
             Self::Skolem { args, .. } => {
@@ -110,16 +119,23 @@ impl GroundTerm {
         term.validate_structure()?;
         Ok(term)
     }
-    /// Check the same nesting invariant used before grounding a program.
+    /// Check the standard nesting invariant used before grounding a program.
     /// # Errors
     /// Rejects excessive triple-term nesting.
     pub fn validate_structure(&self) -> Result<(), TermShapeError> {
+        self.validate_structure_within(&ValidationLimits::standard())
+    }
+    /// Check triple-term nesting under explicit `limits`.
+    /// # Errors
+    /// Rejects triple-term nesting beyond `limits`.
+    pub fn validate_structure_within(
+        &self,
+        limits: &ValidationLimits,
+    ) -> Result<(), TermShapeError> {
         let depth = self.nesting_depth();
-        if depth > MAX_TRIPLE_TERM_NESTING {
-            return Err(TermShapeError::TripleTermNestingExceeded {
-                depth,
-                limit: MAX_TRIPLE_TERM_NESTING,
-            });
+        let limit = limits.triple_term_nesting();
+        if depth > limit {
+            return Err(TermShapeError::TripleTermNestingExceeded { depth, limit });
         }
         Ok(())
     }

@@ -32,6 +32,6 @@ pub use literal::Literal;
 pub use program::Program;
 pub use rule::Rule;
 pub use symbols::{ConstantSymbol, PredicateSymbol, VariableSymbol};
-pub use term::{MAX_TRIPLE_TERM_NESTING, Term};
+pub use term::Term;
 
 pub use structural_term::TermShapeError;

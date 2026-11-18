@@ -2,17 +2,17 @@
 
 use super::cycle::StrictDependencyKind;
 use super::pattern::overlaps;
-use super::tarjan::TarjanState;
 use crate::ir::{Atom, Literal, PredicateSymbol, Program};
 use crate::position::{LiteralIndex, LiteralPath};
-use std::collections::{BTreeMap, BTreeSet};
+use crate::scc::SuccessorGraph;
+use std::collections::BTreeMap;
 
 pub(super) type NodeKey = usize;
 
 #[derive(Debug)]
 pub(super) struct DependencyGraph {
     pub(super) edges: BTreeMap<NodeKey, Vec<DependencyEdge>>,
-    pub(super) nodes: BTreeSet<NodeKey>,
+    pub(super) nodes: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -40,7 +40,7 @@ impl DependencyGraph {
         }
         let mut graph = Self {
             edges: BTreeMap::new(),
-            nodes: (0..program.rules.len()).collect(),
+            nodes: program.rules.len(),
         };
         for (consumer, rule) in program.rules.iter().enumerate() {
             graph.add_literals(&rule.body, None, consumer, None, &producers);
@@ -88,15 +88,14 @@ impl DependencyGraph {
             }
         }
     }
+}
 
-    /// Iterative Tarjan traversal, with sinks before sources.
-    pub(super) fn strongly_connected_components(&self) -> Vec<BTreeSet<NodeKey>> {
-        let mut state = TarjanState::new();
-        for node in &self.nodes {
-            if !state.indices.contains_key(node) {
-                state.strong_connect(node, self);
-            }
-        }
-        state.result
+impl SuccessorGraph for DependencyGraph {
+    fn node_count(&self) -> usize {
+        self.nodes
+    }
+
+    fn successor(&self, node: usize, nth: usize) -> Option<usize> {
+        self.edges.get(&node)?.get(nth).map(|edge| edge.target)
     }
 }

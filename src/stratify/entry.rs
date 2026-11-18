@@ -5,6 +5,7 @@ use super::graph::DependencyGraph;
 use super::types::{Stratification, StratificationError, Stratum};
 use crate::ir::Program;
 use crate::position::RuleIndex;
+use crate::scc::SuccessorGraph;
 
 pub(crate) fn stratify(program: &Program) -> Result<Stratification, StratificationError> {
     let graph = DependencyGraph::build(program);

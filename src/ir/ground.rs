@@ -33,7 +33,7 @@ pub enum GroundTerm {
     /// Contains a [`GroundAtom`] whose argument list contains
     /// only further `GroundTerm` values; recursive nesting is
     /// bounded by
-    /// [`MAX_TRIPLE_TERM_NESTING`](super::term::MAX_TRIPLE_TERM_NESTING)
+    /// [`ValidationLimits::triple_term_nesting`](crate::ValidationLimits::triple_term_nesting)
     /// (enforced at IR
     /// [`Program::validate`](super::program::Program::validate)
     /// time, before grounding).
