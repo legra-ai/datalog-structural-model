@@ -23,20 +23,28 @@ impl Atom {
         self.terms.len()
     }
 
-    /// All variables that appear anywhere in this atom, including
-    /// variables nested inside [`Term::TripleTerm`] arguments
-    /// (recursively).
+    /// Distinct variables in stable symbol order, recursively including triple
+    /// terms and Skolem arguments. Relation names and constants are excluded.
+    /// The result is bounded by this finite authored atom, not a fact relation.
     #[must_use]
-    pub(super) fn variables(&self) -> BTreeSet<VariableSymbol> {
+    pub fn variables(&self) -> BTreeSet<VariableSymbol> {
         let mut acc = BTreeSet::new();
         self.collect_variables(&mut acc);
         acc
     }
 
-    fn collect_variables(&self, acc: &mut BTreeSet<VariableSymbol>) {
+    /// Visit borrowed variable occurrences in operand order, recursively through
+    /// triple terms and Skolem arguments. Repeated occurrences are retained.
+    pub fn visit_variables<'a>(&'a self, visitor: &mut impl FnMut(&'a VariableSymbol)) {
         for term in &self.terms {
-            term.collect_variables(acc);
+            term.visit_variables(visitor);
         }
+    }
+
+    fn collect_variables(&self, acc: &mut BTreeSet<VariableSymbol>) {
+        self.visit_variables(&mut |variable| {
+            acc.insert(variable.clone());
+        });
     }
 
     /// Maximum [`Term::TripleTerm`] nesting depth observed
