@@ -33,10 +33,18 @@ impl Atom {
         acc
     }
 
-    fn collect_variables(&self, acc: &mut BTreeSet<VariableSymbol>) {
+    /// Visit borrowed variable occurrences in operand order, recursively through
+    /// triple terms and Skolem arguments. Repeated occurrences are retained.
+    pub fn visit_variables<'a>(&'a self, visitor: &mut impl FnMut(&'a VariableSymbol)) {
         for term in &self.terms {
-            term.collect_variables(acc);
+            term.visit_variables(visitor);
         }
+    }
+
+    fn collect_variables(&self, acc: &mut BTreeSet<VariableSymbol>) {
+        self.visit_variables(&mut |variable| {
+            acc.insert(variable.clone());
+        });
     }
 
     /// Maximum [`Term::TripleTerm`] nesting depth observed

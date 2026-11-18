@@ -46,3 +46,27 @@ fn constants_empty_atoms_and_ground_structures_have_no_variables() {
     let ground = Term::try_triple_term(atom(vec![constant])).unwrap();
     assert!(ground.variables().is_empty());
 }
+
+#[test]
+fn borrowed_visitors_preserve_occurrence_order_without_cloning_symbols() {
+    let value = atom(vec![
+        variable("z"),
+        Term::try_triple_term(atom(vec![variable("a"), variable("z")])).unwrap(),
+        Term::try_skolem(ConstantSymbol::new("label"), vec![variable("m")]).unwrap(),
+    ]);
+    let mut seen: Vec<&VariableSymbol> = Vec::new();
+    value.visit_variables(&mut |variable| seen.push(variable));
+    assert_eq!(
+        seen.iter().map(|v| v.as_str()).collect::<Vec<_>>(),
+        ["z", "a", "z", "m"]
+    );
+    let term = Term::try_triple_term(value).unwrap();
+    let mut distinct: BTreeSet<&VariableSymbol> = BTreeSet::new();
+    term.visit_variables(&mut |variable| {
+        distinct.insert(variable);
+    });
+    assert_eq!(
+        distinct.into_iter().map(|v| v.as_str()).collect::<Vec<_>>(),
+        ["a", "m", "z"]
+    );
+}

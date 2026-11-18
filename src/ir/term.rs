@@ -71,23 +71,26 @@ impl Term {
         variables
     }
 
-    pub(super) fn collect_variables(&self, out: &mut std::collections::BTreeSet<VariableSymbol>) {
+    /// Visit borrowed variable occurrences in operand order, including nested
+    /// triple terms and Skolem arguments. Repeated occurrences are retained.
+    /// This traverses authored syntax without cloning symbols or resolving values.
+    pub fn visit_variables<'a>(&'a self, visitor: &mut impl FnMut(&'a VariableSymbol)) {
         match self {
-            Self::Variable(var) => {
-                out.insert(var.clone());
-            }
+            Self::Variable(variable) => visitor(variable),
             Self::Constant(_) => {}
-            Self::TripleTerm(atom) => {
-                for term in &atom.terms {
-                    term.collect_variables(out);
-                }
-            }
+            Self::TripleTerm(atom) => atom.visit_variables(visitor),
             Self::Skolem { args, .. } => {
                 for term in args {
-                    term.collect_variables(out);
+                    term.visit_variables(visitor);
                 }
             }
         }
+    }
+
+    pub(super) fn collect_variables(&self, out: &mut std::collections::BTreeSet<VariableSymbol>) {
+        self.visit_variables(&mut |variable| {
+            out.insert(variable.clone());
+        });
     }
 
     /// Depth of the term's triple-term nesting. `0` for plain
