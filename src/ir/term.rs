@@ -60,6 +60,17 @@ pub enum Term {
 }
 
 impl Term {
+    /// Distinct variables in stable symbol order, recursively including triple
+    /// terms and Skolem arguments. Constants and relation names are excluded.
+    /// This inspects syntax; it does not resolve bindings or evaluate Skolem calls.
+    #[must_use]
+    pub fn variables(&self) -> std::collections::BTreeSet<VariableSymbol> {
+        // bounded: variable symbols in this finite authored term, never facts.
+        let mut variables = std::collections::BTreeSet::new();
+        self.collect_variables(&mut variables);
+        variables
+    }
+
     pub(super) fn collect_variables(&self, out: &mut std::collections::BTreeSet<VariableSymbol>) {
         match self {
             Self::Variable(var) => {

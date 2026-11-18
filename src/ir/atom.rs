@@ -23,11 +23,11 @@ impl Atom {
         self.terms.len()
     }
 
-    /// All variables that appear anywhere in this atom, including
-    /// variables nested inside [`Term::TripleTerm`] arguments
-    /// (recursively).
+    /// Distinct variables in stable symbol order, recursively including triple
+    /// terms and Skolem arguments. Relation names and constants are excluded.
+    /// The result is bounded by this finite authored atom, not a fact relation.
     #[must_use]
-    pub(super) fn variables(&self) -> BTreeSet<VariableSymbol> {
+    pub fn variables(&self) -> BTreeSet<VariableSymbol> {
         let mut acc = BTreeSet::new();
         self.collect_variables(&mut acc);
         acc
