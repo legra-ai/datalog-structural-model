@@ -163,8 +163,8 @@ Serialized forms are pinned by exact JSON and Postcard golden files under
 
 Stratification results serialize as reports. Recompute stratification from the
 validated program when scheduling execution; loading a report does not certify
-an executable plan. Serde encodings are neither canonical hashes nor RDF concrete
-syntaxes. Callers own decoding resource budgets; this crate owns structural and
+an executable plan. Serde encodings are neither canonical hashes (see `ProgramDigest`) nor RDF
+concrete syntaxes. Callers own decoding resource budgets; this crate owns structural and
 program-safety validation. Structural ceilings are typed `ValidationLimits`
 (see below).
 
@@ -215,6 +215,60 @@ acyclicity (`ProfileCheckError::TerminationUncertified`) and a certified Skolem
 depth within the limit. Limit errors (`rule-count-exceeded`,
 `body-length-exceeded`, `triple-term-nesting-exceeded`, `skolem-depth-exceeded`)
 report the limit and the value reached.
+
+## Program and contract digests
+
+`Program::digest` returns a `ProgramDigest`: a 32-byte BLAKE3 content identity
+of the program as authored. It is computed from a canonical preimage, never
+from a Serde encoding, so JSON, Postcard and in-memory construction of the same
+program give the same digest.
+
+The preimage starts with the versioned domain tag
+`datalog-structural-model/program-digest/v1`, then writes fields in a fixed
+order. Every text field and every sequence is prefixed with its length as a
+`u64` little-endian value, and every enum variant writes its own tag byte. As a
+result:
+
+- rule order, body literal order, argument order, group-by order and
+  aggregate inner-body order are significant;
+- variables, constants, triple terms and Skolem terms are distinct, so a
+  variable `x` never collides with a constant `x`;
+- positive, negative, filter, bind and aggregate literals and every filter,
+  expression and aggregator operator are distinct.
+
+`ValidationContract` pairs an `EqualityMode`, `ValidationLimits` and a
+`TerminationCriterion` (with its law version). `ValidationContract::digest_for`
+returns a `ContractDigest` over the program digest and those parameters under
+the tag `datalog-structural-model/contract-digest/v1`. The program digest
+excludes them on purpose: the same program checked under different limits or
+termination laws is still the same program, while a cache of validation
+outcomes keys on the contract digest.
+
+Both digests display as 64 lowercase hex characters and parse back with
+`FromStr`. Digests are published identities, frozen by
+`tests/digest_golden.rs`. Any change to the preimage introduces a new
+domain-tag version; it never silently moves an existing digest.
+
+```rust
+use datalog_structural_model::{
+    Atom, EqualityMode, PredicateSymbol, Program, ProgramDigest, Rule, Term,
+    TerminationCriterion, ValidationContract, ValidationLimits, VariableSymbol,
+};
+
+let x = Term::Variable(VariableSymbol::new("x"));
+let atom = |name: &str| Atom { predicate: PredicateSymbol::new(name), terms: vec![x.clone()] };
+let program = Program::try_new(vec![Rule::positive(atom("q"), vec![atom("p")])])?;
+let digest = program.digest();
+assert_eq!(digest.to_string().parse::<ProgramDigest>()?, digest);
+
+let contract = ValidationContract::new(
+    EqualityMode::Default,
+    ValidationLimits::standard(),
+    TerminationCriterion::WeaklyAcyclic,
+);
+assert_ne!(contract.digest_for(&program).as_bytes(), digest.as_bytes());
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
 
 ## Triple-term adapter conventions
 
